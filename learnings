@@ -1,0 +1,14 @@
+
+attention: pairnei decoder hidden state, dynamic embeddings, static embeddings kai mask.
+
+ypologizei to context me torch.bmm(static_embeddings, probability_to_visit_each_index)
+
+meta to context to kanei concatenate me to uparxon decoder hidden state, kai
+ta pernaei apo ena linear layer gia na ta epanaferei se diastaseis tou hidden state
+tou decoder. auto einai to neo attention -aware hidden state tou decoder
+
+
+Den ekpaideuetai.
+dokimasa na balw tanh sto decoder hidden otan to ananewnw.
+
+prepei na katalabw ligo kalutera ti gyrnaei to reward kai ta actor critics genika
