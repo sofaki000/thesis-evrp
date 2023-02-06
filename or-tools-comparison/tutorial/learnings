@@ -1,0 +1,6 @@
+1. decoder
+
+arxika pairnei 1*1*hidden_size ws input
+
+ta arxika hidden states einai to hidden kai context
+tou encoder

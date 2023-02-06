@@ -12,3 +12,27 @@ Den ekpaideuetai.
 dokimasa na balw tanh sto decoder hidden otan to ananewnw.
 
 prepei na katalabw ligo kalutera ti gyrnaei to reward kai ta actor critics genika
+
+
+1. tried initializing parameters at evrp main model
+
+
+DECODER INPUT
+1. mporei na einai ta static embeddings
+ decoder_input = static_embeddings[:,:, :1] # same as: static_embeddings[:,:,0].unsqueeze(2)
+ decoder_input = static_embeddings[torch.arange(batch_size), :, chosen_indexes].unsqueeze(1)
+
+2. mporw na exw xexwristo embedding gia to 1 seq step
+decoder_input = torch.ones(batch_size, dynamic_features, 1)
+decoder_input = self.embedding_for_decoder_input(decoder_input)
+self.embedding_for_decoder_input = Encoder(in_feats=dynamic_features, out_feats=hidden_size)
+
+meta to ananewnw me to dynamic state tou.. POLY LATHOS.
+logika to panw alla me ta STATIC FEATURES !!!!
+
+
+ DECODER HIDDEN STATE
+
+ 1. pairnei to hidden state pou afhnei
+ 2. me to context tou attention kanoume concatenate kai pername apo linear
+ layer gia na epanaferoume se mhkos

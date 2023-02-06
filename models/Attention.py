@@ -5,9 +5,12 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 num_afs = 3
+# attention structure
+use_tahn = True
+
 
 class Attention(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, C=10):
         super().__init__()
 
         # self.w1 = nn.Linear(hidden_size, hidden_size)
@@ -34,7 +37,7 @@ class Attention(nn.Module):
         self._inf = nn.Parameter(torch.FloatTensor([float('-inf')]), requires_grad=False)
         self.softmax = nn.Softmax()
         self.linear_for_dec_hidden= nn.Linear(hidden_size*2, hidden_size)
-
+        self.C = C
     def init_inf(self, mask_size):
         self.inf = self._inf.unsqueeze(1).expand(*mask_size)
     def forward(self, decoder_hidden_state, static_embeddings, dynamic_embeddings, mask):
@@ -62,23 +65,29 @@ class Attention(nn.Module):
                             v1.bmm(self.tanh(e_sum)[:, :, 1:num_afs + 1]),
                             v2.bmm(self.tanh(e_sum)[:, :, num_afs + 1:])), dim=2)
 
-        probabiliti_to_visit_each_index = self.tanh(logits).squeeze(1) # self.exploring_c *
+        if use_tahn:
+            prob_to_visit_each_index = self.C * self.tanh(logits).squeeze(1)
+        else:
+            prob_to_visit_each_index = logits.squeeze(1)
 
         # exei 0 an den einai masked, -inf an einai masked to element dne mporoume na pame
         # ara den pairnei kamia pithanothta sto softmax
-        probabiliti_to_visit_each_index_last = self.softmax(mask + probabiliti_to_visit_each_index)
+        probability_to_visit_each_index_masked = self.softmax(mask + prob_to_visit_each_index)
 
-        probabiliti_to_visit_each_index_last = probabiliti_to_visit_each_index_last.squeeze(1)
+        probability_to_visit_each_index_masked = probability_to_visit_each_index_masked.squeeze(1)
 
         # we calculate context so we can concatenate decoder hidden states and create
         # the new decoder hidden states
-        context = static_embeddings.bmm(probabiliti_to_visit_each_index_last.unsqueeze(2))  # [bs, hidden_size, 1]
+        context = static_embeddings.bmm(probability_to_visit_each_index_masked.unsqueeze(2))  # [bs, hidden_size, 1]
 
         concatenated_states = torch.cat((decoder_hidden_state.unsqueeze(2), context), dim=1)
-        attention_aware_hidden_state = self.tanh(self.linear_for_dec_hidden(concatenated_states.squeeze(2)).unsqueeze(0))
 
 
-        return probabiliti_to_visit_each_index_last,attention_aware_hidden_state
+        attention_aware_hidden_state = self.C * self.tanh(self.linear_for_dec_hidden(concatenated_states.squeeze(2)).unsqueeze(0))
+
+
+
+        return probability_to_visit_each_index_masked,attention_aware_hidden_state
         # w1_epi_encoder_states = self.w1(decoder_hidden_state).unsqueeze(2).expand(-1, -1, seq_len) # becomes: [bs, hidden_sz, seq_len]
         # w2_epi_decoder_states = self.w2_for_encoder(static_embeddings)
         #

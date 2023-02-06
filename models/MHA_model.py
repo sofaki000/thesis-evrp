@@ -4,6 +4,7 @@ from torch.nn.parameter import Parameter
 from dataset import update_fn
 from models.Attention import Attention
 from models.Embeddings.ConvolutionalEmbedding import Encoder
+from models.Embeddings.GraphAttentionEncoder import GraphAttentionEncoder
 from models.EncoderDecoder import Decoder
 
 static_features = 2
@@ -19,11 +20,11 @@ num_afs = 3
 use_seperate_decoder_input_embedding = True
 dropout_decoder_hidden_states = True
 
-class EVRP_Solver(nn.Module):
+class MHA_EVRP_solver(nn.Module):
     def __init__(self):
         super().__init__()
         dropout= 0.5
-        self.encoder_static = Encoder(in_feats=static_features, out_feats=hidden_size)
+        self.encoder_static = GraphAttentionEncoder()
         self.encoder_dynamic = Encoder(in_feats=dynamic_features, out_feats=hidden_size)
         self.drop_hh = nn.Dropout(p=dropout)
         self.embedding_for_decoder_input = Encoder(in_feats=static_features, out_feats=hidden_size)
@@ -45,7 +46,8 @@ class EVRP_Solver(nn.Module):
         '''
 
         batch_size, _ ,seq_len = static.shape
-        static_embeddings = self.encoder_static(static) # [batch_size, hidden_size, seq_len],
+        embeddings, mean_embeddings = self.encoder_static(static=static, dynamic=dynamic) # [batch_size, hidden_size, seq_len]
+        embeddings = embeddings.transpose(2, 1)
         dynamic_embeddings = self.encoder_dynamic(dynamic)
 
         # mask: [batch_size, sequence_length]
@@ -58,7 +60,8 @@ class EVRP_Solver(nn.Module):
             decoder_input = self.embedding_for_decoder_input(decoder_input)
         else:
             # always start from depot, ie the 1st point (0 index)
-            decoder_input = static_embeddings[:,:, :1] # same as: static_embeddings[:,:,0].unsqueeze(2)
+            decoder_input = embeddings[:,:, :1] # same as: static_embeddings[:,:,0].unsqueeze(2)
+
         decoder_input = decoder_input.transpose(2, 1)
 
 
@@ -84,8 +87,9 @@ class EVRP_Solver(nn.Module):
 
             decoder_hidden_state = decoder_states[0]
 
+            assert embeddings.size(0) == batch_size and embeddings.size(1) == hidden_size and embeddings.size(2) == seq_len
             probability_to_visit_each_index,decoder_hidden_state = self.attention(decoder_hidden_state.squeeze(0),
-                                                                                   static_embeddings,
+                                                                                   embeddings,
                                                                                    dynamic_embeddings,
                                                                                    mask)
 
@@ -117,7 +121,7 @@ class EVRP_Solver(nn.Module):
                 decoder_input = self.embedding_for_decoder_input(decoder_input).transpose(2,1)
             else:
                 # update decoder input to chosen indexes static embeddings
-                decoder_input = static_embeddings[torch.arange(batch_size), :, chosen_indexes].unsqueeze(1)
+                decoder_input = embeddings[torch.arange(batch_size), :, chosen_indexes].unsqueeze(1)
 
             # we update decoder states
             if dropout_decoder_hidden_states:

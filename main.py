@@ -5,11 +5,14 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from EVRP.dataset import GVRPDataset, reward_func
-from EVRP.models.main_model import EVRP_Solver
+from dataset import GVRPDataset, reward_func
+from models.MHA_model import MHA_EVRP_solver
+from models.main_model import EVRP_Solver
+from plot_utilities import plot_losses_and_rewards
 
-epochs = 35
-model = EVRP_Solver()
+epochs = 20
+#model = EVRP_Solver()
+model = MHA_EVRP_solver()
 
 train_size = 100
 num_nodes = 4
@@ -48,16 +51,7 @@ for epoch in range(epochs):
         losses_per_epochs.append(loss_at_epoch)
         rewards_per_epochs.append(reward_at_epoch)
 
-def get_filename_time():
-    now = datetime.datetime.now()
-    return f'm={now.month}_d={now.day}_h={now.hour}_m={now.minute}'
 
-
-time = get_filename_time()
 
 # epochs finished
-plt.plot(losses_per_epochs)
-plt.savefig(f"losses{time}.png")
-plt.clf()
-plt.plot(rewards_per_epochs)
-plt.savefig(f"rewards{time}.png")
+plot_losses_and_rewards(losses_per_epochs, rewards_per_epochs)
