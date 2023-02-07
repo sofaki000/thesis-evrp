@@ -91,7 +91,7 @@ def print_solution_comparison(manager, routing, or_tools_solution, my_solution):
 # # Instantiate the data problem.
 # dummy_data = create_data_model()
 
-def run_or_model(data, my_solution=None):
+def run_or_model(data):
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
                                            data['num_vehicles'],

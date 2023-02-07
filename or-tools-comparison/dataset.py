@@ -1,4 +1,4 @@
-
+from scipy.spatial import distance_matrix
 import numpy as np
 import itertools
 from tqdm import tqdm
@@ -7,6 +7,10 @@ from torch.utils.data import Dataset
 
 
 distance_matrix_table = []
+
+
+def create_distance_matrix(points):
+    return distance_matrix(points, points)
 
 def tsp_opt(points):
     """
@@ -19,9 +23,7 @@ def tsp_opt(points):
         return np.linalg.norm(np.asarray(x_coord) - np.asarray(y_coord))
 
     # Calculate all lengths
-    all_distances = [[length(x, y) for y in points] for x in points]
-
-
+    all_distances = create_distance_matrix(points) #[[length(x, y) for y in points] for x in points]
     # Initial value - just distance from 0 to every other point + keep the track of edges
     A = {(frozenset([0, idx+1]), idx+1): (dist, [0, idx+1]) for idx, dist in enumerate(all_distances[0][1:])}
     cnt = len(points)
@@ -66,7 +68,7 @@ class TSPDataset(Dataset):
         data_iter = tqdm(range(self.data_size), unit='data')
         for i, _ in enumerate(data_iter):
             data_iter.set_description('Data points %i/%i' % (i+1, self.data_size))
-            points_list.append(np.random.randint(10,size=(self.seq_len, 2))) # np.random.random((self.seq_len, 2))
+            points_list.append(np.random.randint(30,size=(self.seq_len, 2))) # np.random.random((self.seq_len, 2))
         solutions_iter = tqdm(points_list, unit='solve')
         if self.solve:
             for i, points in enumerate(solutions_iter):

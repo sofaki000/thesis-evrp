@@ -1,13 +1,12 @@
-
+from torch import nn
 from tqdm import tqdm
-import torch
 import torch.optim as optim
 from IPython.core.display_functions import clear_output
 from matplotlib import pyplot as plt
 from torch.autograd import Variable
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
+from plot_utilities import get_filename_time
 from tsp_model import TSP_model
-from dataset import  TSPDataset
 
 
 def plot_losses(epoch, train_loss, val_loss):
@@ -21,11 +20,10 @@ def plot_losses(epoch, train_loss, val_loss):
     plt.title('val epoch %s loss %s' % (epoch, val_loss[-1] if len(val_loss) else 'collecting'))
     plt.plot(val_loss)
     plt.grid()
-    plt.savefig("train_and_val_loss.png")
+    #plt.savefig(f"train_and_val_loss{get_filename_time()}.png")
     plt.clf()
 
-def train_tsp_model(train_dataset, test_dataset):
-    epochs = 20
+def train_tsp_model(train_dataset, test_dataset,epochs):
     batch_size = 10
     num_nodes = 13
 
@@ -52,6 +50,7 @@ def train_tsp_model(train_dataset, test_dataset):
 
             loss_at_epoch += loss.detach().item()
             optimizer.zero_grad()
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1., norm_type=2)
             loss.backward()
             optimizer.step()
             train_loss.append(loss.data.item())
@@ -75,7 +74,7 @@ def train_tsp_model(train_dataset, test_dataset):
 
 
     # training finished
-    plt.plot(losses_per_epoch)
-    plt.savefig("losses.png")
+    # plt.plot(losses_per_epoch)
+    # plt.savefig(f"losses_per_epoch{get_filename_time()}.png")
 
     return model,outputs

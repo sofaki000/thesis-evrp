@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from dataset import GVRPDataset, reward_func
 from models.MHA_model import MHA_EVRP_solver
 from models.main_model import EVRP_Solver
-from plot_utilities import plot_losses_and_rewards
+from plot_utilities import plot_losses_and_rewards, show_tour
 
 epochs = 20
 #model = EVRP_Solver()
@@ -50,7 +50,6 @@ for epoch in range(epochs):
         print(f'Epoch:{epoch}, loss:{loss_at_epoch}, reward:{reward_at_epoch}')
         losses_per_epochs.append(loss_at_epoch)
         rewards_per_epochs.append(reward_at_epoch)
-
 
 
 # epochs finished
