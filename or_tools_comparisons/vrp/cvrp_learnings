@@ -1,0 +1,12 @@
+EMBEDDINGS:
+Ola conv1d
+1.  twn static elements
+2. twn dynamic elements
+3. tou decoder input
+
+DECODER:
+
+input: ena ena ta static_embeddings
+hidden states: xekiname me mhdenika kai meta tou dinoume ta dika tou
+
+ATTENTION:
