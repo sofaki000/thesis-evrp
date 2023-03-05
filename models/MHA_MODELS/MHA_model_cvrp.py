@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from dataset import update_fn
+from datasets.capacitated_vrp_dataset import update_dynamic, should_terminate_cvrp
 from models.Attention import Attention
 from models.Embeddings.ConvolutionalEmbedding import Encoder
-from models.Embeddings.GraphAttentionEncoder import GraphAttentionEncoder
+from models.Embeddings.GraphEmbeddings.GraphAttentionEncoderCVRP import GraphAttentionEncoderForCVRP
 from models.EncoderDecoder import Decoder
 
 static_features = 2
-dynamic_features = 3
+dynamic_features = 2
 hidden_size = 128
 capacity = 60
 velocity = 60
@@ -20,11 +20,11 @@ num_afs = 3
 use_seperate_decoder_input_embedding = True
 dropout_decoder_hidden_states = True
 
-class MHA_EVRP_solver(nn.Module):
+class MHA_CVRP_solver(nn.Module):
     def __init__(self):
         super().__init__()
         dropout= 0.5
-        self.encoder_static = GraphAttentionEncoder()
+        self.encoder_static = GraphAttentionEncoderForCVRP()
         self.encoder_dynamic = Encoder(in_feats=dynamic_features, out_feats=hidden_size)
         self.drop_hh = nn.Dropout(p=dropout)
         self.embedding_for_decoder_input = Encoder(in_feats=static_features, out_feats=hidden_size)
@@ -38,7 +38,7 @@ class MHA_EVRP_solver(nn.Module):
             if len(p.shape) > 1:
                 nn.init.xavier_uniform_(p)
 
-    def forward(self, static, dynamic,distances):
+    def forward(self, static, dynamic, distances):
         '''
         static: [batch_size, static_features, seq_len],
         dynamic: [batch_size, dynamic_features, seq_len],
@@ -72,13 +72,9 @@ class MHA_EVRP_solver(nn.Module):
         tour_logp= []
 
         old_idx = torch.zeros(batch_size, 1, dtype=torch.long)
-        dis_by_afs = [distances[:, i:i + 1, 0:1] + distances[:, i:i + 1, :] for i in range(1, num_afs + 1)]
-        dis_by_afs = torch.cat(dis_by_afs, dim=1)
-        dis_by_afs = torch.min(dis_by_afs, dim=1)  # tuple: (batch, seq_len), ()
-        dis_by_afs[0][:, 0] = 0
 
         for i in range(self.max_steps):
-            if (dynamic[:, 2, :] == 0).all():  # all demands have been satisfied
+            if should_terminate_cvrp(dynamic):  # all demands have been satisfied
                 break
 
             assert decoder_input.size(0)== batch_size and decoder_input.size(1)== 1 and decoder_input.size(2) == hidden_size
@@ -88,25 +84,33 @@ class MHA_EVRP_solver(nn.Module):
             decoder_hidden_state = decoder_states[0]
 
             assert embeddings.size(0) == batch_size and embeddings.size(1) == hidden_size and embeddings.size(2) == seq_len
-            probability_to_visit_each_index,decoder_hidden_state = self.attention(decoder_hidden_state.squeeze(0),
-                                                                                   embeddings,
-                                                                                   dynamic_embeddings,
-                                                                                   mask)
+            use_attention_aware_hidden_states= False
+            if use_attention_aware_hidden_states:
+                probability_to_visit_each_index,decoder_hidden_state = self.attention(decoder_hidden_state.squeeze(0),
+                                                                                       embeddings,
+                                                                                       dynamic_embeddings,
+                                                                                       mask)
+            else:
+                probability_to_visit_each_index, _ = self.attention(decoder_hidden_state.squeeze(0),
+                                                                embeddings,
+                                                                dynamic_embeddings,
+                                                                mask)
 
             assert decoder_hidden_state.size(0)== 1 and decoder_hidden_state.size(1)== batch_size and decoder_hidden_state.size(2) == hidden_size
 
-            m = torch.distributions.Categorical(probability_to_visit_each_index)
-            ptr = m.sample()
+            try:
+                m = torch.distributions.Categorical(probability_to_visit_each_index)
+                ptr = m.sample()
+            except:
+                print("ERROR")
+
             chosen_indexes = ptr.data.detach()
             logp = m.log_prob(ptr)
             tour_logp.append(logp.unsqueeze(1))
 
             assert old_idx.size(0) == batch_size and old_idx.size(1) == 1
-            dynamic = update_fn(old_idx, chosen_indexes.unsqueeze(1),
-                                     mask, dynamic,
-                                     distances, dis_by_afs, capacity,
-                                     velocity, cons_rate, t_limit,
-                                     num_afs)  # update mask and dynamic
+
+            dynamic = update_dynamic(dynamic, chosen_indexes)
 
             dynamic_embeddings = self.encoder_dynamic(dynamic)
 

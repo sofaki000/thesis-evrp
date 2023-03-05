@@ -10,3 +10,13 @@ input: ena ena ta static_embeddings
 hidden states: xekiname me mhdenika kai meta tou dinoume ta dika tou
 
 ATTENTION:
+
+
+
+
+DIFFERENCES I HAD WITH OFFICIAL IMPLEMENTATION:
+
+1. applying dropout to hidden states of decoder + decoder input (2 different dropout layers)
+2. ACTOR CRITIC
+
+3. autos gia kapoion logo einai san na exei duo attentions. ena encoder attention ena geniko

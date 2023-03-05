@@ -8,7 +8,52 @@ num_afs = 3
 # attention structure
 use_tahn = True
 
+import torch
+import torch.nn as nn
 
+
+class AdditiveAttention(nn.Module):
+
+    def __init__(self, hidden_dim):
+        super().__init__()
+
+        self.hidden_dim = hidden_dim
+
+        # attention
+        self.W = nn.Linear(hidden_dim * 2, hidden_dim)  # bidirectional
+        self.tanh = nn.Tanh()
+        self.v = nn.Parameter(torch.Tensor(hidden_dim, 1))  # context vector
+        self.softmax = nn.Softmax(dim=2)
+
+        # initialization
+        nn.init.normal_(self.v, 0, 0.1)
+
+    def forward(self, mask, query, values):
+        # mask: [B,1,T] (masking padding tokens)
+        # query: [B,H] (hidden state, decoder outputs, etc.)
+        # values: [T,B,H] (outputs to align)
+
+        T, B, H = values.size()
+
+        # compute energy
+        query = query.repeat(T, 1, 1)  # [B,H] -> [T,B,H]
+        feats = torch.cat((query, values), dim=2)  # [T,B,H*2]
+        energy = self.tanh(self.W(feats))  # [T,B,H*2] -> [T,B,H]
+
+        # compute attention scores
+        v = self.v.t().repeat(B, 1, 1)  # [H,1] -> [B,1,H]
+        energy = energy.permute(1, 2, 0)  # [T,B,H] -> [B,H,T]
+        scores = torch.bmm(v, energy)  # [B,1,H]*[B,H,T] -> [B,1,T]
+
+        # apply mask, renormalize
+        scores = scores * mask
+        scores.div_(scores.sum(2, keepdim=True))
+
+        # weight values
+        values = values.permute(1, 0, 2)  # [T,B,H] -> [B,T,H]
+        combo = torch.bmm(scores, values).squeeze(1)  # [B,1,T]*[B,T,H] -> [B,H]
+
+        return (combo, scores)
 class Attention(nn.Module):
     def __init__(self, hidden_size, C=10):
         super().__init__()
@@ -86,7 +131,7 @@ class Attention(nn.Module):
         attention_aware_hidden_state = self.C * self.tanh(self.linear_for_dec_hidden(concatenated_states.squeeze(2)).unsqueeze(0))
 
 
-
+        # probabilities: batch_size, seq_len, attention_aware_hidden_state = [1, batch_size, 128]
         return probability_to_visit_each_index_masked,attention_aware_hidden_state
         # w1_epi_encoder_states = self.w1(decoder_hidden_state).unsqueeze(2).expand(-1, -1, seq_len) # becomes: [bs, hidden_sz, seq_len]
         # w2_epi_decoder_states = self.w2_for_encoder(static_embeddings)

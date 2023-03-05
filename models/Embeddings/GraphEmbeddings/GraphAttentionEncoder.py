@@ -7,7 +7,7 @@ import math
 
 from models.AttentionVariations.Multihead import MultiHeadAttention
 
-use_separate_embedding_for_each_dynamic_feature = True
+use_separate_embedding_for_each_dynamic_feature = False #  True #
 
 CAPACITIES = {10: 20., 20: 30., 50: 40., 100: 50.}
 def generate_data(n_samples=10, n_customer=20, seed=None):
@@ -77,7 +77,7 @@ class SelfAttention(nn.Module):
 
 class EncoderLayer(nn.Module):
     # nn.Sequential):
-    def __init__(self, n_heads=8, FF_hidden=512, embed_dim=128, **kwargs):
+    def __init__(self, n_heads=3, FF_hidden=128, embed_dim=128, **kwargs):
         super().__init__(**kwargs)
         self.n_heads = n_heads
         self.FF_hidden = FF_hidden
@@ -87,12 +87,13 @@ class EncoderLayer(nn.Module):
         self.MHA_sublayer = ResidualBlock_BN(SelfAttention(MultiHeadAttention(n_heads=self.n_heads, embed_dim=embed_dim, need_W=True)), self.BN1)
 
         self.FF_sublayer = ResidualBlock_BN(
-            nn.Sequential(
-                nn.Linear(embed_dim, FF_hidden, bias=True),
-                nn.ReLU(),
-                nn.Linear(FF_hidden, embed_dim, bias=True)
-            ),
-            self.BN2 )
+            nn.Sequential(  nn.Linear(embed_dim, FF_hidden, bias=True),
+                nn.ReLU(), nn.Linear(FF_hidden, embed_dim, bias=True)
+            ),  self.BN2 )
+
+        for p in self.parameters():
+            if len(p.shape) > 1:
+                nn.init.xavier_uniform_(p)
 
     def forward(self, x, mask=None):
         """	arg x: (batch, n_nodes, embed_dim)
@@ -102,12 +103,16 @@ class EncoderLayer(nn.Module):
 
 
 class GraphAttentionEncoder(nn.Module):
-    def __init__(self, embed_dim=128, n_heads=8, n_layers=3, FF_hidden=512):
+    def __init__(self, dynamic_features, embed_dim=128, n_heads=8, n_layers=3, FF_hidden=512):
         super().__init__()
         self.embed_dim = embed_dim
+
         self.init_W_depot = torch.nn.Linear(2, embed_dim, bias=True)
         self.init_W_afs = torch.nn.Linear(2, embed_dim, bias=True)
         self.init_W = torch.nn.Linear(2, embed_dim, bias=True)
+
+        self.dynamic_embedding = nn.Linear(dynamic_features, embed_dim, bias=True)
+
         self.encoder_layers = nn.ModuleList([EncoderLayer(n_heads, FF_hidden, embed_dim) for _ in range(n_layers)])
 
         self.init_time_duration = nn.Linear(1, embed_dim, bias=True)
@@ -120,30 +125,34 @@ class GraphAttentionEncoder(nn.Module):
         self.dynamic_embeddings_to_correct_size = nn.Linear(embed_dim*3, embed_dim, bias=True)
 
         self.dynamic_and_static_to_correct_size = nn.Linear(embed_dim * 2, embed_dim, bias=True)
+
     def forward(self, static, dynamic, mask=None):
         '''
 
         '''
-
+        batch_size = static.size(0)
+        seq_len = static.size(2)
 
         ### DYNAMIC EMBEDDINGS
-        if use_separate_embedding_for_each_dynamic_feature: # we can embed each dynamic feature with different embedding (linear) layer
+        if use_separate_embedding_for_each_dynamic_feature: # we can embed each dynamic feature with different embedding (linear) layer: problem: an den xeroume ta dynamics apo prin?
             time_duration = dynamic[:,0,:]
             time_duration_embed = self.init_time_duration(time_duration.unsqueeze(2))
             capacity = dynamic[:,1,:]
             capacity_embed = self.init_capacity(capacity.unsqueeze(2))
             demands = dynamic[:,2,:]
             demands_embed = self.init_demands(demands.unsqueeze(2))
-
             dynamic_embeddings = torch.cat((capacity_embed,demands_embed, time_duration_embed), dim=2)
 
             # we return dynamic embeddings to correct size
-            dynamic_embeddings = self.dynamic_embeddings_to_correct_size(dynamic_embeddings)
+            dynamic_embeddings = self.dynamic_embeddings_to_correct_size(dynamic_embeddings).transpose(2,1)
         else:
-            dynamic_embeddings = self.dynamic_embedding(dynamic) # apo [bs,feats,num_nodes] -> [bs, hidden_size, num_nodes]
+            assert dynamic.size(0) == batch_size
+            assert dynamic.size(2) == seq_len
+            dynamic_embeddings = self.dynamic_embedding(dynamic.transpose(1,2)).transpose(1,2) # apo [bs,feats,num_nodes] -> [bs, hidden_size, num_nodes]
 
         ########### STATIC EMBEDDINGS:
         depot_feats = static[:, :, 0] # [batch_size, 2]
+
         afs = static[:, :, 1:4] # [ bs, 2, num_afs]
         customers = static[:, :, 4:] # [bs, 2, num_customers]
 
@@ -158,7 +167,7 @@ class GraphAttentionEncoder(nn.Module):
         static_embeddings = torch.cat((afs_embedding, customers_embeddings, depot_embedding.unsqueeze(2)), dim=2)
 
         ###### WE CONCATENATE STATIC AND DYNAMIC EMBEDDINGS
-        dynamic_and_static_embeddings = torch.cat((dynamic_embeddings.transpose(2,1), static_embeddings), dim=1)
+        dynamic_and_static_embeddings = torch.cat((dynamic_embeddings , static_embeddings), dim=1)
         dynamic_and_static_embeddings = self.dynamic_and_static_to_correct_size(dynamic_and_static_embeddings.transpose(2,1))
 
         #static = torch.cat([self.init_W_depot(static[0])[:, None, :], self.init_W(torch.cat([static[1], static[2][:, :, None]], dim=-1))], dim=1)
@@ -167,6 +176,8 @@ class GraphAttentionEncoder(nn.Module):
             static = layer(dynamic_and_static_embeddings, mask)
 
         return (static, torch.mean(static, dim=1))
+
+
 
 
 if __name__ == '__main__':

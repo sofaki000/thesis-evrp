@@ -29,3 +29,16 @@ def print_solution(tour) -> object:
             plan_output += ' {} ->'.format(tour[i])
     print(plan_output)
     return plan_output
+
+def get_tour_length_from_distance_matrix(tour, distance_matrix):
+    length = 0
+    prev_index = tour[0]
+    for i in range(len(tour)):
+        index = tour[i]
+        length += distance_matrix[index][prev_index]
+        prev_index = index
+
+    content = f'Distance travelled:{length}'
+    print("----------------------")
+    print(content)
+    return content, length

@@ -1,7 +1,0 @@
-1. decoder input
-
-input:
-1-1 ta target_embeddings!!!
-hidden states:
-arxika oti dinei o encoder ws hidden and context.
-meta ta dika tou

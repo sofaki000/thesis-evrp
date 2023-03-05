@@ -1,14 +1,10 @@
-import datetime
-
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from dataset import GVRPDataset, reward_func
-from models.MHA_model import MHA_EVRP_solver
-from models.main_model import EVRP_Solver
-from plot_utilities import plot_losses_and_rewards, show_tour
+from models.MHA_MODELS.MHA_model import MHA_EVRP_solver
+from plot_utilities import plot_losses_and_rewards
 
 epochs = 20
 #model = EVRP_Solver()

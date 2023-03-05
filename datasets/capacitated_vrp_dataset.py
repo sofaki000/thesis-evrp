@@ -23,6 +23,7 @@ class CapacitatedVehicleRoutingDataset(Dataset):
 
         if seed is None:
             seed = np.random.randint(1234567890)
+
         np.random.seed(seed)
         torch.manual_seed(seed)
 
@@ -54,17 +55,18 @@ class CapacitatedVehicleRoutingDataset(Dataset):
         # (static, dynamic, start_loc)
         return (self.static[idx], self.dynamic[idx], self.static[idx, :, 0:1])
 
-def should_terminate(dynamic):
-    demands = dynamic[:,1]
+def should_terminate_cvrp(dynamic):
+    demands = dynamic[:,1][:,1:] #dynamic[:,1]
     # poia exoun demand equals 0?
     is_done = demands.sum(1).eq(0).float()
 
-    return is_done
+    return is_done.all()
 
-def update_mask(mask, dynamic, chosen_idx=None):
+def update_mask_cvrp(mask, dynamic, chosen_idx=None):
         """Updates the mask used to hide non-valid states.
         ----------   Parameters  ----------
         dynamic: torch.autograd.Variable of size (batch_size, num_feats, seq_len)
+        dynamic: [loads, demands]
         """
 
         # Convert floating point to integers for calculations
@@ -144,19 +146,19 @@ def reward_fn(static, tour_indices):
     """
     Euclidean distance between all cities / nodes given by tour_indices
     """
-
     # Convert the indices back into a tour
     idx = tour_indices.unsqueeze(1).expand(-1, static.size(1), -1)
     tour = torch.gather(static.data, 2, idx).permute(0, 2, 1)
 
     # Ensure we're always returning to the depot - note the extra concat
     # won't add any extra loss, as the euclidean distance between consecutive
-    # points is 0
-    start = static.data[:, :, 0].unsqueeze(1)
-    y = torch.cat((start, tour, start), dim=1)
+    # points is 0 # i was ensuring this earlier!! don't know which place is better
+    # to ensure this
+    # start = static.data[:, :, 0].unsqueeze(1)
+    # y = torch.cat((start, tour, start), dim=1)
 
     # Euclidean distance between each consecutive point
-    tour_len = torch.sqrt(torch.sum(torch.pow(y[:, :-1] - y[:, 1:], 2), dim=2))
+    tour_len = torch.sqrt(torch.sum(torch.pow(tour[:, :-1] - tour[:, 1:], 2), dim=2))
 
     return tour_len.sum(1)
 
