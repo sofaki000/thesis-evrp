@@ -1,14 +1,14 @@
 
 from torch.utils.data import DataLoader
 from datasets.capacitated_vrp_dataset import CapacitatedVehicleRoutingDataset
-from cvrp_main import train_cvrp_model
+from cvrp_main import train_cvrp_model_pntr
+from models.CVRP_SOLVER import get_trained_model_for_cvrp
 from or_tools_comparisons.comparison_utilities import get_percentage_of_shorter_tours
 from plot_utilities import show_tour, get_filename_time
 testing = True
 
 if __name__ == '__main__':
     if testing:
-
         test_size = 1
         epochs = 1
         num_nodes = 5
@@ -30,7 +30,13 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(validation_ds, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    cvrp_model = train_cvrp_model(epochs, train_loader ,validation_loader)
+    # use_multihead_attention = True #False
+    # use_pointer_network = False #True
+    use_multihead_attention = False
+    use_pointer_network = True
+
+    cvrp_model = get_trained_model_for_cvrp(use_multihead_attention, use_pointer_network, epochs, train_loader, validation_loader)
+    #cvrp_model = train_cvrp_model(epochs, train_loader ,validation_loader)
 
     # COMPARISON
     test_ds = CapacitatedVehicleRoutingDataset(num_samples=test_size, input_size=num_nodes,
@@ -55,6 +61,11 @@ if __name__ == '__main__':
     print(content2)
 
     # blepoyme thn teleutaia diadromh
+    if use_pointer_network:
+        model_tour_title = 'Tour from pointer network model'
+    elif use_multihead_attention:
+        model_tour_title= 'Tour from multihead attention model'
+
     show_tour(static_elements.squeeze(0).transpose(1,0), distance_matrix,
               model_tour=cvrp_tour_indices, or_tour=or_tour,
-              filename=f'vrp_nodes={num_nodes}_epochs={epochs}')
+              filename=f'vrp_nodes={num_nodes}_epochs={epochs}', model_tour_title=model_tour_title)

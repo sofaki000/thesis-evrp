@@ -76,7 +76,7 @@ def get_2city_distance(n1, n2):
 	else:
 		raise TypeError
 
-def show_tour(nodes, distance_matrix, model_tour, or_tour, filename):
+def show_tour(nodes, distance_matrix, model_tour, or_tour, filename, model_tour_title):
     '''
     nodes: tensor [num_nodes, 2]
     model_tour, or_tour: [num_nodes+1]
@@ -89,7 +89,7 @@ def show_tour(nodes, distance_matrix, model_tour, or_tour, filename):
     show_tour_for_model(ax[0],distance_matrix, nodes, or_tour)
 
 
-    ax[1].set_title('Tour from model')
+    ax[1].set_title(model_tour_title)
     ax[1].scatter(nodes[:, 0], nodes[:, 1])  # plot B
     show_tour_for_model(ax[1],distance_matrix, nodes, model_tour)
 

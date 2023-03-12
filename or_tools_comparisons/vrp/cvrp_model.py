@@ -122,12 +122,12 @@ class PointerNetwork(nn.Module):
 
         return tours, tour_logp
 
-class CVRPSolver(nn.Module):
-    def __init__(self, update_mask):
+class CVRPSolver_PointerNetwork(nn.Module):
+    def __init__(self, update_mask, update_dynamic):
         super().__init__()
 
         self.static_embedding = Embedding(input_feats=static_features, out_feats=hidden_size)
-        self.decoder = PointerNetwork(update_mask=update_mask)
+        self.decoder = PointerNetwork(update_mask=update_mask, update_dynamic_state=update_dynamic)
 
     def forward(self, static, dynamic):
         '''static: [batch_size, static_features, seq_len],dynamic: [batch_size, dynamic_features, seq_len]'''

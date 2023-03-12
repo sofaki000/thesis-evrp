@@ -5,12 +5,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from datasets.capacitated_vrp_dataset import CapacitatedVehicleRoutingDataset, reward_fn
-from models.EVRP_SOLVER import EVRP_SOLVER_MODEL
+
 from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, create_distance_matrix, \
     create_distance_matrix_for_batch_elements
 
 
-def train_model(model, epochs, train_loader ,validation_loader):
+def train_model_with_multihead_attention(model, epochs, train_loader, validation_loader):
     max_grad = 2.
 
     lr = 0.00000001
@@ -41,7 +41,6 @@ def train_model(model, epochs, train_loader ,validation_loader):
             optimizer.zero_grad()
             loss.backward()
 
-
             nn.utils.clip_grad_norm_(model.parameters(), max_grad)
             optimizer.step()
 
@@ -54,16 +53,16 @@ def train_model(model, epochs, train_loader ,validation_loader):
             reward_at_epoch += current_reward
             loss_at_epoch += current_batch_loss
 
-            # if batch_id % 100 == 0:
-            #     model.eval()
-            #     for sample_batch  in validation_loader:
-            #         static, dynamic, x0 = sample_batch
-            #         distance_matrix = create_distance_matrix_for_batch_elements(static)
-            #         outputs, validation_tour_indices, validation_tour_logp  = model(static, dynamic,distance_matrix)
-            #         validation_reward = reward_fn(static, validation_tour_indices)
-            #         validation_loss = torch.mean(validation_reward.detach() * validation_tour_logp.sum(dim=1))
-            #         val_loss.append(validation_loss.data.item())
-            #         val_reward.append(torch.mean(validation_reward.detach()).item())
+            if batch_id % 100 == 0:
+                model.eval()
+                for sample_batch  in validation_loader:
+                    static, dynamic, x0 = sample_batch
+                    distance_matrix = create_distance_matrix_for_batch_elements(static)
+                    outputs, validation_tour_indices, validation_tour_logp  = model(static, dynamic,distance_matrix)
+                    validation_reward = reward_fn(static, validation_tour_indices)
+                    validation_loss = torch.mean(validation_reward.detach() * validation_tour_logp.sum(dim=1))
+                    val_loss.append(validation_loss.data.item())
+                    val_reward.append(torch.mean(validation_reward.detach()).item())
 
             if batch_id % 100 == 0  and epoch== epochs-1:
                 test_size = len(train_loader.dataset)
@@ -80,6 +79,7 @@ def train_model(model, epochs, train_loader ,validation_loader):
 
 
 if __name__ == '__main__':
+    from models.CVRP_SOLVER import CVRP_SOLVER_MODEL
     epochs = 10
     num_nodes = 13 # THELEI POLLA NODES ALLIWS LEADS TO NAN!!!
     train_size = 100
@@ -91,6 +91,6 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    model = EVRP_SOLVER_MODEL(use_multihead_attention=True)
+    model = CVRP_SOLVER_MODEL(use_multihead_attention=True, use_pointer_network=False)
 
-    train_model(model, epochs, train_loader ,validation_loader)
+    trained_model = train_model_with_multihead_attention(model, epochs, train_loader, validation_loader)

@@ -5,14 +5,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from datasets.capacitated_vrp_dataset import CapacitatedVehicleRoutingDataset, reward_fn
+
 from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
-from cvrp_model import CVRPSolver
 
 
-model = CVRPSolver()
 
 
-def train_cvrp_model(epochs, train_loader ,validation_loader):
+def train_cvrp_model_pntr(model, epochs, train_loader, validation_loader):
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
     model.train()
     val_loss = []
@@ -78,10 +77,11 @@ if __name__ == '__main__':
     train_size = 100
     test_size = 10
     batch_size = 25
-
+    from models.CVRP_SOLVER import CVRP_SOLVER_MODEL
     train_dataset = CapacitatedVehicleRoutingDataset(num_samples=train_size, input_size=num_nodes)
     test_dataset = CapacitatedVehicleRoutingDataset(num_samples=test_size, input_size=num_nodes)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    train_cvrp_model(epochs, train_loader ,validation_loader)
+    model = CVRP_SOLVER_MODEL(use_multihead_attention=False, use_pointer_network=True)
+    train_cvrp_model_pntr(model, epochs, train_loader, validation_loader)
