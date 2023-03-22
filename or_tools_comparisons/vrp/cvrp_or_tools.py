@@ -128,7 +128,8 @@ def train_or_model_for_cvrp(data):
     """Solve the CVRP problem."""
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(len(data['distance_matrix']),
-                                           data['num_vehicles'], data['depot'])
+                                           data['num_vehicles'],
+                                           data['depot'])
 
     # Create Routing Model.
     routing = pywrapcp.RoutingModel(manager)

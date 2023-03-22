@@ -1,16 +1,16 @@
 
 from torch.utils.data import DataLoader
-from datasets.capacitated_vrp_dataset import CapacitatedVehicleRoutingDataset
+from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset
 from cvrp_main import train_cvrp_model_pntr
 from models.CVRP_SOLVER import get_trained_model_for_cvrp
-from or_tools_comparisons.comparison_utilities import get_percentage_of_shorter_tours
+from or_tools_comparisons.comparison_utilities import get_percentage_of_shorter_tours_CVRP
 from plot_utilities import show_tour, get_filename_time
-testing = True
+
 
 
 def compare_model_with_or_tools(model, model_type, test_loader, file_name_for_storing_results):
     number_of_tours_or_suggested_shorter_solutions, cvrp_tour_indices, or_tour, static_elements, distance_matrix \
-        = get_percentage_of_shorter_tours(test_loader, model, max_load)
+        = get_percentage_of_shorter_tours_CVRP(test_loader, model, max_load)
 
     f = open(file_name_for_storing_results, "a")
 
@@ -32,6 +32,7 @@ def compare_model_with_or_tools(model, model_type, test_loader, file_name_for_st
               filename=f'{model_type}_vrp_nodes={num_nodes}_epochs={epochs}', model_tour_title=model_tour_title)
 
 if __name__ == '__main__':
+    testing = False
     if testing:
         test_size = 1
         epochs = 1
@@ -41,9 +42,9 @@ if __name__ == '__main__':
     else:
         test_size = 150
         epochs = 15
-        num_nodes = 100
-        train_size = 2000
-        validation_size = 1000
+        num_nodes = 5 #100
+        train_size = 1000 #2000
+        validation_size = 500 #1000
 
     batch_size = 25
     max_load = 20

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from CVRP_Attention import Attention, DoubleAttention
-from datasets.capacitated_vrp_dataset import update_dynamic, update_mask_cvrp
+from datasets.CVRP_dataset import update_dynamic, update_mask_cvrp
 from explaining_distributions import plot_distribution, explain_decision
 
 static_features = 2

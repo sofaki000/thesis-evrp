@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from datasets.capacitated_vrp_dataset import update_dynamic, should_terminate_cvrp
+from datasets.CVRP_dataset import update_dynamic, should_terminate_cvrp
 from models.Attention import Attention
 from models.Embeddings.ConvolutionalEmbedding import Encoder
 from models.Embeddings.GraphEmbeddings.GraphAttentionEncoderCVRP import GraphAttentionEncoderForCVRP
@@ -140,4 +140,4 @@ class MHA_CVRP_solver(nn.Module):
 
         assert outputs.size(0) == batch_size and outputs.size(2) == seq_len
         assert tours.size(0) == batch_size
-        return outputs, tours, tour_logp  # outputs:[bs, seq_len, seq_len], tours: [bs, seq_len]
+        return tours, tour_logp  # outputs:[bs, seq_len, seq_len], tours: [bs, seq_len]

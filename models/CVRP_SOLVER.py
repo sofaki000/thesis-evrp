@@ -3,7 +3,7 @@ from models.MHA_MODELS.MHA_model_cvrp import MHA_CVRP_solver
 from or_tools_comparisons.vrp.cvrp_main import train_cvrp_model_pntr
 from or_tools_comparisons.vrp.cvrp_model import CVRPSolver_PointerNetwork
 
-from datasets.capacitated_vrp_dataset import   update_mask_cvrp, update_dynamic
+from datasets.CVRP_dataset import   update_mask_cvrp, update_dynamic
 
 # auth h classh dinei ena montelo pou lynei to CVRP. auth th
 # stigmh exoume dyo montela: ena pou xrhsimopoiei multihead attention

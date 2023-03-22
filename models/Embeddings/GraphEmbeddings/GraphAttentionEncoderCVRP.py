@@ -69,7 +69,7 @@ class GraphAttentionEncoderForCVRP(nn.Module):
             #print(self.dynamic_embedding.bias)
             dynamic_embeddings = self.dynamic_embedding(dynamic.transpose(1, 2)).transpose(1, 2)
 
-            print(self.dynamic_embedding.weight)
+            #print(self.dynamic_embedding.weight)
         ########### STATIC EMBEDDINGS:
 
         if self.use_seperate_embedding_for_static_feats:

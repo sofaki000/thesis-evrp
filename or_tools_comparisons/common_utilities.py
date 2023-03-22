@@ -31,6 +31,7 @@ def print_solution(tour) -> object:
     return plan_output
 
 def get_tour_length_from_distance_matrix(tour, distance_matrix):
+
     length = 0
     prev_index = tour[0]
     for i in range(len(tour)):

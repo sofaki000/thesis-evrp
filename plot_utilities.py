@@ -81,7 +81,7 @@ def show_tour(nodes, distance_matrix, model_tour, or_tour, filename, model_tour_
     nodes: tensor [num_nodes, 2]
     model_tour, or_tour: [num_nodes+1]
     '''
-    assert nodes.size(1) ==2
+    assert nodes.size(1) == 2
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, sharex=True, sharey=True)  # Prepare 2 plots
     ax[0].set_title('OR tour')

@@ -3,7 +3,7 @@ from or_tools_comparisons.vrp.cvrp_or_tools import create_data_model, train_or_m
 from plot_utilities import create_distance_matrix
 
 
-def get_percentage_of_shorter_tours(test_loader,model, max_load):
+def get_percentage_of_shorter_tours_CVRP(test_loader, model, max_load):
     pointer_yper_or_tools = 0
 
     for batch in test_loader:

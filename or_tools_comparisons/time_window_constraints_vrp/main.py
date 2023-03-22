@@ -5,16 +5,15 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
+from datasets.VRPTW_dataset import VRPTW_data, VRPTW_data_simple, reward_fn_vrptw
+from or_tools_comparisons.time_window_constraints_vrp.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 
-from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, create_distance_matrix, \
+from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, \
     create_distance_matrix_for_batch_elements
 
 
-def train_model_with_multihead_attention(model, epochs, train_loader, validation_loader):
-    max_grad = 2.
-
-    lr = 0.00000001
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+def train_vrptw_model(model, epochs, train_loader, validation_loader):
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     model.train()
     val_loss = []
     train_loss = []
@@ -26,24 +25,20 @@ def train_model_with_multihead_attention(model, epochs, train_loader, validation
         loss_at_epoch = 0.0
         reward_at_epoch = 0.0
 
-
         for batch_id, sample_batch in enumerate(iterator):
 
-            static, dynamic, x0 = sample_batch
+            static, dynamic, distance_matrix = sample_batch
 
-            distance_matrix = create_distance_matrix_for_batch_elements(static)
+            tour_indices, tour_logp, time_spent_at_each_route= model(static, dynamic, distance_matrix)
 
-            tours, tour_logp  = model(static, dynamic,distance_matrix)
-
-            reward = reward_fn(static, tours)
+            reward = reward_fn_vrptw(static, tour_indices,time_spent_at_each_route)
             loss = torch.mean(reward.detach() * tour_logp.sum(dim=1))
+
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1., norm_type=2)
 
             optimizer.zero_grad()
             loss.backward()
-
-            nn.utils.clip_grad_norm_(model.parameters(), max_grad)
             optimizer.step()
-
 
             current_batch_loss = loss.detach().data.item()
             current_reward = torch.mean(reward.detach()).item()
@@ -56,9 +51,10 @@ def train_model_with_multihead_attention(model, epochs, train_loader, validation
             if batch_id % 100 == 0:
                 model.eval()
                 for sample_batch  in validation_loader:
-                    static, dynamic, x0 = sample_batch
-                    distance_matrix = create_distance_matrix_for_batch_elements(static)
-                    validation_tour_indices, validation_tour_logp  = model(static, dynamic,distance_matrix)
+                    static, dynamic, distance_matrix = sample_batch
+
+                    validation_tour_indices, validation_tour_logp,time_spent_at_each_route = model(static, dynamic, distance_matrix)
+
                     validation_reward = reward_fn(static, validation_tour_indices)
                     validation_loss = torch.mean(validation_reward.detach() * validation_tour_logp.sum(dim=1))
                     val_loss.append(validation_loss.data.item())
@@ -79,18 +75,17 @@ def train_model_with_multihead_attention(model, epochs, train_loader, validation
 
 
 if __name__ == '__main__':
-    from models.CVRP_SOLVER import CVRP_SOLVER_MODEL
-    epochs = 10
-    num_nodes = 13 # THELEI POLLA NODES ALLIWS LEADS TO NAN!!!
-    train_size = 100
+    epochs = 40
+    num_nodes = 5
+    train_size = 1000
     test_size = 100
-    batch_size = 15
-    torch.autograd.set_detect_anomaly(True)
-    train_dataset = CapacitatedVehicleRoutingDataset(num_samples=train_size, input_size=num_nodes)
-    test_dataset = CapacitatedVehicleRoutingDataset(num_samples=test_size, input_size=num_nodes)
+    batch_size = 25
+
+    train_dataset = VRPTW_data_simple(train_size, num_nodes)
+    test_dataset = VRPTW_data_simple(train_size, num_nodes)
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    model = CVRP_SOLVER_MODEL(use_multihead_attention=True, use_pointer_network=False)
-
-    trained_model = train_model_with_multihead_attention(model, epochs, train_loader, validation_loader)
+    model = VRPTW_SOLVER_MODEL( )
+    model = train_vrptw_model(model, epochs, train_loader, validation_loader)
