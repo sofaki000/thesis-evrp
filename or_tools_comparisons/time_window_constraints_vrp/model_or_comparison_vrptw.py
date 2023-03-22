@@ -40,8 +40,9 @@ def compare_model_with_or_tools_VRPTW(model, test_loader, file_name_for_storing_
 
 
 if __name__ == '__main__':
-    testing = True
+    testing = False #True
     if testing:
+        print("TRAINING FOR VERY FEW EPOCHS")
         test_size = 1
         epochs = 1
         num_nodes = 5
@@ -77,12 +78,14 @@ if __name__ == '__main__':
 
     model = VRPTW_SOLVER_MODEL()
 
-    use_trained_model = False
+    use_trained_model = True #False #
     PATH = "./model_vrptw.pt"
-    
+
     if use_trained_model:
+       print("Loading pretrained model...")
        model.load_state_dict(torch.load(PATH))
     else:
+        print("Training model...")
         model = train_vrptw_model(model, epochs, train_loader, validation_loader)
         torch.save(model.state_dict(), PATH)
 

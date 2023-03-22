@@ -82,6 +82,85 @@ def print_solution(data, manager, routing, solution):
     print('Total time of all routes: {}min'.format(total_time))
 
 
+
+# In the above function, we first create the routing index manager and the routing model. We then define the distance, time window, and time penalty callbacks using lambda functions. The time penalty callback computes the penalty for violating the time windows. We register the distance and time window callbacks as transit callbacks, and we register the time penalty callback as a unary transit callback. We add a capacity dimension to the routing model to handle vehicle capacities.
+#
+# We then
+def solve_vrp_with_time_windows_with_or_tools_chatgpt_suggestion(data):
+        from ortools.constraint_solver import routing_enums_pb2
+        from ortools.constraint_solver import pywrapcp
+        # Create the routing index manager.
+        manager = pywrapcp.RoutingIndexManager(len(data['time_matrix']),
+                                               data['num_vehicles'],
+                                               data['depot'])
+
+        # Create the routing model.
+        routing = pywrapcp.RoutingModel(manager)
+
+        # Define the distance callback.
+        def distance_callback(from_index, to_index):
+            return data['time_matrix'][manager.IndexToNode(from_index)][manager.IndexToNode(to_index)]
+
+        transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+
+        # Define the time window callback.
+        def time_window_callback(node_index):
+            return (data['time_windows'][node_index][0], data['time_windows'][node_index][1])
+
+        time_callback_index = routing.RegisterTransitCallback(time_window_callback)
+
+        # Define the time penalty callback.
+        def time_penalty_callback(from_index, to_index):
+            service_time = 0
+            if from_index == 0:
+                return 0
+            travel_time = distance_callback(from_index, to_index)
+            arrival_time = routing.CumulVar(to_index, 'Time')
+            time_window = time_window_callback(to_index)
+            if arrival_time > time_window[1]:
+                delay = arrival_time - time_window[1]
+                return delay + travel_time + service_time
+            elif arrival_time < time_window[0]:
+                delay = time_window[0] - arrival_time
+                return delay
+            return 0
+
+        routing.SetArcCostEvaluatorOfDimension(transit_callback_index, 'Time')
+        penalty_callback_index = routing.RegisterUnaryTransitCallback(time_penalty_callback)
+        routing.AddDimensionWithVehicleCapacity(
+            penalty_callback_index,
+            0,
+            [data['vehicle_capacities']] * data['num_vehicles'],
+            True,
+            'Capacity')
+
+        # Set search parameters.
+        search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+        search_parameters.local_search_metaheuristic = (
+            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH)
+        search_parameters.time_limit.seconds = 10
+
+        # Solve the problem.
+        solution = routing.SolveWithParameters(search_parameters)
+
+        # Return the solution.
+        if solution:
+            routes = []
+            for vehicle_id in range(data['num_vehicles']):
+                route = []
+                index = routing.Start(vehicle_id)
+                while not routing.IsEnd(index):
+                    node_index = manager.IndexToNode(index)
+                    route.append(node_index)
+                    index = solution.Value(routing.NextVar(index))
+                node_index = manager.IndexToNode(index)
+                route.append(node_index)
+                routes.append(route)
+            return routes
+        else:
+            return None
+
+
 def solve_vrp_with_time_windows_with_or_tools(data):
     """Solve the VRP with time windows."""
     # Create the routing index manager.
@@ -107,11 +186,11 @@ def solve_vrp_with_time_windows_with_or_tools(data):
     # Add Time Windows constraint.
     time = 'Time'
     routing.AddDimension(
-        transit_callback_index,
-        1000,  # allow waiting time
-        1000,  # maximum time per vehicle
-        False,  # Don't force start cumul to zero.
-        time)
+        evaluator_index= transit_callback_index,
+        slack_max=1000,  # allow waiting time, slack max specifies the max slack (delay) allowed for each location
+        capacity_dim=0, # set to zero bc we dont consider capacity constraints
+        fix_start_cumul_to_zero=True, # the cumulative time at the start location is set to zero
+        name='Time')
     time_dimension = routing.GetDimensionOrDie(time)
     # Add time window constraints for each location except depot.
     for location_idx, time_window in enumerate(data['time_windows']):
