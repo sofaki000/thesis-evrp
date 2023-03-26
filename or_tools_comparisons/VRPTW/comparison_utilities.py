@@ -1,5 +1,5 @@
 from or_tools_comparisons.common_utilities import get_tour_length_from_distance_matrix
-from or_tools_comparisons.time_window_constraints_vrp.VRPTW_ORTOOLS_model import create_data_model_vrptw, \
+from or_tools_comparisons.VRPTW.VRPTW_ORTOOLS_model import create_data_model_vrptw, \
     solve_vrp_with_time_windows_with_or_tools
 from or_tools_comparisons.vrp.cvrp_or_tools import create_data_model, train_or_model_for_cvrp, print_solution
 from plot_utilities import create_distance_matrix
@@ -24,11 +24,19 @@ def get_percentage_of_shorter_tours_VRPTW(test_loader, model):
                                                     time_windows= time_windows[0,:,:].transpose(1,0),
                                                     num_vehicles=1)
 
+        counter_for_unsolved_problems = 0
+
         try:
             or_tour = solve_vrp_with_time_windows_with_or_tools(data_for_or_model)[0]
         except:
-            print("Cant solve this problem statement")
-            continue
+             print("Cant solve this problem statement")
+             counter_for_unsolved_problems +=1
+             continue
+
+        print(f'Could not solve {counter_for_unsolved_problems} use cases.')
+
+
+
         # TODO: add to print solution
         # print("my model:\n")
         # model_output = print_solution(vrptw_tour_indices)

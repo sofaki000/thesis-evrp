@@ -97,6 +97,21 @@ def show_tour(nodes, distance_matrix, model_tour, or_tour, filename, model_tour_
 
     plt.savefig(f"tours\\tour_{filename}.png")
 
+def show_tour_for_one_solution(nodes, distance_matrix,   or_tour, filename ,title):
+    '''
+    nodes: tensor [num_nodes, 2]
+    model_tour, or_tour: [num_nodes+1]
+    '''
+    assert nodes.size(1) == 2
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(1, sharex=True, sharey=True)  # Prepare 2 plots
+    ax.set_title(title)
+    ax.scatter(nodes[:, 0], nodes[:, 1])  # plot A
+    show_tour_for_model(ax,distance_matrix, nodes, or_tour)
+
+    plt.tight_layout()
+
+    plt.savefig(f"{filename}.png")
 
 def plot_train_and_validation_loss(epoch, train_loss, val_loss,experiment_details=""):
     title1 = f"Train epoch {epoch}, {train_loss[-1]:.2f}"

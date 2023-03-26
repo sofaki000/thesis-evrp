@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
-from datasets.VRPTW_dataset import VRPTW_data, VRPTW_data_simple, reward_fn_vrptw
-from or_tools_comparisons.time_window_constraints_vrp.VRTW_SOLVER import VRPTW_SOLVER_MODEL
+from datasets.VRPTW_dataset import VRPTW_data, VRPTW_data, reward_fn_vrptw
+from or_tools_comparisons.VRPTW.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 
 from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, \
     create_distance_matrix_for_batch_elements
@@ -74,6 +74,23 @@ def train_vrptw_model(model, epochs, train_loader, validation_loader):
     return model
 
 
+
+def get_model_vrptw(use_pretrained_model):
+    model = VRPTW_SOLVER_MODEL()
+    PATH = "./model_vrptw.pt"
+    if use_pretrained_model:
+        # load model from path
+        print("Loading pretrained model...")
+        model.load_state_dict(torch.load(PATH))
+
+    else:
+        # train new model
+        print("Training model...")
+        model = train_vrptw_model(model, epochs, train_loader, validation_loader)
+        torch.save(model.state_dict(), PATH)
+
+    return model
+
 if __name__ == '__main__':
     epochs = 40
     num_nodes = 5
@@ -81,8 +98,8 @@ if __name__ == '__main__':
     test_size = 100
     batch_size = 25
 
-    train_dataset = VRPTW_data_simple(train_size, num_nodes)
-    test_dataset = VRPTW_data_simple(train_size, num_nodes)
+    train_dataset = VRPTW_data(train_size, num_nodes)
+    test_dataset = VRPTW_data(train_size, num_nodes)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)

@@ -7,8 +7,8 @@ import numpy as np
 
 from rl_for_solving_the_vrp.src import config
 
-from or_tools_comparisons.time_window_constraints_vrp.time_windows_utilities import get_start_and_end_times, \
-    get_batch_for_time_intervals
+from or_tools_comparisons.VRPTW.time_windows_utilities import get_start_and_end_times, \
+    get_batch_for_time_intervals, get_customer_locations
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 velocity = 10
@@ -40,7 +40,8 @@ def reward_fn_vrptw(static, tour_indices,time_spent_at_each_route):
     return tour_len.sum(1)
 
 
-class VRPTW_data_simple(Dataset):
+
+class VRPTW_data(Dataset):
     def __init__(self, train_size, num_nodes):
         super().__init__()
         seed = 520
@@ -48,7 +49,8 @@ class VRPTW_data_simple(Dataset):
 
         torch.manual_seed(seed)
         self.velocity = velocity
-        customers = torch.rand(train_size, 2, num_nodes, device=device)
+
+        customers = get_customer_locations(train_size, num_nodes)
 
         # TODO: create realistic windows + draw gannt diagram for them
         start_times, end_times = get_start_and_end_times()
@@ -190,216 +192,4 @@ def update_dynamic_state_vrptw(static, dynamic, idx, old_idx, distances):
     return dynamic.unsqueeze(1)
 
 
-class VRPTW_data(Dataset):
-    def __init__(self, train_size, num_nodes,  t_limit,  velocity=40):
-        super().__init__()
-        seed = 520
-        self.size = train_size
-        self.velocity = velocity
-        self.cons_rate = config.cons_rate
 
-        torch.manual_seed(seed)
-
-        customers = torch.rand(train_size, 2, num_nodes, device=device)
-        customers[:, 0, :] = customers[:, 0, :] * 4 - 79.5
-        customers[:, 1, :] = customers[:, 1, :] * 3.5 + 36
-        self.static = customers # (train_size, 2, num_nodes )
-
-        self.dynamic = torch.ones(train_size, 1, 1+num_nodes, device=device)   # time duration, capacity, demands
-        self.dynamic[:, 0, :] *= t_limit # time duration
-
-        seq_len = self.static.size(2)
-        self.distances = torch.zeros(train_size, seq_len, seq_len, device=device)
-        for i in range(seq_len):
-            self.distances[:, i] = self.cal_dis(self.static[:, 0, :], self.static[:, 1, :], self.static[:, 0, i:i+1], self.static[:, 1, i:i+1])
-
-    def __len__(self):
-        return self.size
-
-    def __getitem__(self, idx):
-        return self.static[idx], self.dynamic[idx], self.static[idx, :, 0:1], self.distances[idx]
-
-    def cal_dis(self, lon1, lat1, lon2, lat2):
-        """
-        Calculate the great circle distance between two points
-        on the earth (specified in decimal degrees)
-        """
-        # degrees to radians
-        lon1, lat1, lon2, lat2 = map(lambda x: x / 180 * np.pi, [lon1, lat1, lon2, lat2])
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = torch.pow(torch.sin(dlat / 2), 2) + torch.cos(lat1) * torch.cos(lat2) * torch.pow(torch.sin(dlon / 2), 2)
-        c = 2 * 4182.44949 * torch.asin(torch.sqrt(a))  # miles
-        # c = 2 * atan2(sqrt(a), sqrt(1 - a)) * 4182.44949
-        return c
-    def update_mask_vrptw(self, mask, dynamic, idx=None):
-        distances = self.batch_distances
-
-        cons_rate = self.cons_rate
-        velocity = self.velocity
-
-        # pernoume ta pragmata ta swsta apo to dynamic
-        time = dynamic[:, 0, :].clone()
-
-        # den allazoume kati, apla pairnoume oti xreiazomaste gia na ananewsoume to mask
-        dis1 = distances[torch.arange(distances.size(0)), idx ].clone()
-        fuel_pd0 = self.cons_rate * dis1
-        time_pd0 = dis1 / velocity
-
-        fuel_pd1 = cons_rate * dis1
-        time_pd1 = (distances[torch.arange(distances.size(0)), idx ] + distances[:, 0, :]) / velocity
-        # time_pd1[:, 1:num_afs + 1] += 0.25
-        # time_pd1[:, num_afs + 1:] += 0.5
-
-        # path2: ->Node-> Station-> Depot(choose the station making the total distance shortest)
-        #dis2 = distances[:, 1:num_afs + 1, :].gather(1, dis_by_afs[1].unsqueeze(1)).squeeze(1)
-        #dis2[:, 0] = 0
-        #dis2 += distances[torch.arange(distances.size(0)), idx]
-        #fuel_pd2 = cons_rate * dis2
-        time_pd2 = (distances[torch.arange(distances.size(0)), idx ] + dis_by_afs[0]) / velocity
-        #time_pd2[:, 1:num_afs + 1] += 0.25
-        #time_pd2[:, num_afs + 1:] += 0.5
-
-        # path3: ->Node-> Station-> Depot(choose the closest station to the node), ignore this path temporarily
-        # the next node should be able to return to depot with at least one way; otherwise, mask it
-
-        # afs = (idx.gt(0) & idx.le(num_afs))
-        # fs = idx.le(num_afs)
-        # customer = idx.gt(num_afs)
-
-        mask.scatter_(1, idx.unsqueeze(1), 0)
-        # # forbid passing by afs if leaving depot, allow if returning to depot; forbid from afs to afs, not necessary but convenient
-        # mask[fs, 1:num_afs + 1] = 0  # float('-inf')
-        # mask[afs, 0] = 0
-        # mask[customer, :num_afs + 1] = 0
-        # mask[fs] = torch.where(demands[fs] > 0, torch.zeros(mask[fs].size(), device=device), mask[fs])
-        #
-        # mask[~((fuel >= fuel_pd1) & (time >= time_pd1) | (fuel >= fuel_pd2) & (time >= time_pd2))] = 0  # float('-inf')
-        #
-        # mask[(fuel < fuel_pd0) | (time < time_pd0)] = 0  # float('-inf')
-        #
-        # all_masked = mask[:, num_afs + 1:].eq(0).sum(1).le(0)
-        # mask[all_masked, 0] = 1  # unmask the depot if all nodes are masked
-
-        return mask
-    def update_dynamic_state_vrptw(self, dynamic, idx, old_idx, distances=None):
-            """
-            :param old_idx: (batch*beam, 1)
-            :param idx: ditto
-            :param mask: (batch*beam, seq_len)
-            :param dynamic: (batch*beam, dynamic_features, seq_len)
-            :param distances: (batch*beam, seq_len, seq_len)
-            :param dis_by_afs: (batch*beam, seq_len)
-            :param capacity, velocity, cons_rate, t_limit, num_afs: scalar
-            :return: updated dynamic
-            """
-            t_limit = config.t_limit
-            cons_rate = self.cons_rate
-            velocity= self.velocity
-            if distances is None:
-                distances = self.batch_distances
-            else:
-                distances = distances
-            dis = distances[torch.arange(distances.size(0)), old_idx.squeeze(1), idx].unsqueeze(1)
-
-            depot = idx.eq(0)
-            customer = 0 #idx.gt(num_afs)
-            time = dynamic[:, 0, :].clone()
-            fuel = dynamic[:, 1, :].clone()
-            demands = dynamic[:, 2, :].clone()
-
-            time -= dis / velocity
-            time[depot] = t_limit
-            #time[afs] -= 0.25
-            time[customer] -= 0.5
-
-
-            dynamic = torch.cat((time.unsqueeze(1), fuel.unsqueeze(1), demands.unsqueeze(1)), dim=1).to(device)
-
-            return dynamic
-
-
-#
-# def update_dynamic_state_vrptw( dynamic, idx, old_idx, distances=None):
-#             """
-#             :param old_idx: (batch*beam, 1)
-#             :param idx: ditto
-#             :param mask: (batch*beam, seq_len)
-#             :param dynamic: (batch*beam, dynamic_features, seq_len)
-#             :param distances: (batch*beam, seq_len, seq_len)
-#             :param dis_by_afs: (batch*beam, seq_len)
-#             :param capacity, velocity, cons_rate, t_limit, num_afs: scalar
-#             :return: updated dynamic
-#             """
-#             t_limit = config.t_limit
-#             velocity = 10
-#             dis = distances[torch.arange(distances.size(0)), old_idx.squeeze(1), idx].unsqueeze(1)
-#
-#             depot = idx.eq(0)
-#             customer = 0 #idx.gt(num_afs)
-#             time = dynamic[:, 0, :].clone()
-#             fuel = dynamic[:, 1, :].clone()
-#             demands = dynamic[:, 2, :].clone()
-#
-#             time -= dis / velocity
-#             time[depot] = t_limit
-#             #time[afs] -= 0.25
-#             time[customer] -= 0.5
-#
-#             #fuel -= cons_rate * dis
-#             #fuel[fs] = capacity
-#             #demands.scatter_(1, idx.unsqueeze(1), 0)
-#
-#             dynamic = torch.cat((time.unsqueeze(1), fuel.unsqueeze(1), demands.unsqueeze(1)), dim=1).to(device)
-#
-#             return dynamic
-#
-# def update_mask_vrptw( mask, dynamic,distances,  idx=None):
-#
-#         cons_rate = 0.5 #self.cons_rate
-#         velocity = 10 #self.velocity
-#
-#         # pernoume ta pragmata ta swsta apo to dynamic
-#         time = dynamic[:, 0, :].clone()
-#
-#         # den allazoume kati, apla pairnoume oti xreiazomaste gia na ananewsoume to mask
-#         dis1 = distances[torch.arange(distances.size(0)), idx ].clone()
-#         #fuel_pd0 = self.cons_rate * dis1
-#         time_pd0 = dis1 / velocity
-#
-#         fuel_pd1 = cons_rate * dis1
-#         time_pd1 = (distances[torch.arange(distances.size(0)), idx ] + distances[:, 0, :]) / velocity
-#         # time_pd1[:, 1:num_afs + 1] += 0.25
-#         # time_pd1[:, num_afs + 1:] += 0.5
-#
-#         # path2: ->Node-> Station-> Depot(choose the station making the total distance shortest)
-#         #dis2 = distances[:, 1:num_afs + 1, :].gather(1, dis_by_afs[1].unsqueeze(1)).squeeze(1)
-#         #dis2[:, 0] = 0
-#         #dis2 += distances[torch.arange(distances.size(0)), idx]
-#         #fuel_pd2 = cons_rate * dis2
-#         time_pd2 = (distances[torch.arange(distances.size(0)), idx ] + dis_by_afs[0]) / velocity
-#         #time_pd2[:, 1:num_afs + 1] += 0.25
-#         #time_pd2[:, num_afs + 1:] += 0.5
-#
-#         # path3: ->Node-> Station-> Depot(choose the closest station to the node), ignore this path temporarily
-#         # the next node should be able to return to depot with at least one way; otherwise, mask it
-#
-#         # afs = (idx.gt(0) & idx.le(num_afs))
-#         # fs = idx.le(num_afs)
-#         # customer = idx.gt(num_afs)
-#
-#         mask.scatter_(1, idx.unsqueeze(1), 0)
-#         # # forbid passing by afs if leaving depot, allow if returning to depot; forbid from afs to afs, not necessary but convenient
-#         # mask[fs, 1:num_afs + 1] = 0  # float('-inf')
-#         # mask[afs, 0] = 0
-#         # mask[customer, :num_afs + 1] = 0
-#         # mask[fs] = torch.where(demands[fs] > 0, torch.zeros(mask[fs].size(), device=device), mask[fs])
-#         #
-#         # mask[~((fuel >= fuel_pd1) & (time >= time_pd1) | (fuel >= fuel_pd2) & (time >= time_pd2))] = 0  # float('-inf')
-#         #
-#         # mask[(fuel < fuel_pd0) | (time < time_pd0)] = 0  # float('-inf')
-#         #
-#         # all_masked = mask[:, num_afs + 1:].eq(0).sum(1).le(0)
-#         # mask[all_masked, 0] = 1  # unmask the depot if all nodes are masked
-#
-#         return mask
