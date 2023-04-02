@@ -66,6 +66,22 @@ def solve_vrp_with_time_windows_with_or_tools(data):
     # Create Routing Model.
     routing = pywrapcp.RoutingModel(manager)
 
+    # Define the cost function (distance)
+    def objective_function_to_minimize(from_index, to_index):
+        """Returns the travel time between the two nodes."""
+        # Convert from routing variable Index to time matrix NodeIndex.
+        from_node = manager.IndexToNode(from_index)
+        to_node = manager.IndexToNode(to_index)
+
+        travel_time_from_one_node_to_other = data['time_matrix'][from_node][to_node]
+        print(f'From node {from_node} to {to_node}: time_travel={travel_time_from_one_node_to_other}')
+
+        return torch.tensor(travel_time_from_one_node_to_other, dtype=int)
+
+    # we set to minimize this function
+    transit_callback_index = routing.RegisterTransitCallback(objective_function_to_minimize)
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
     # Create and register a transit callback.
     def time_callback(from_index, to_index):
         """Returns the travel time between the two nodes."""
@@ -83,18 +99,11 @@ def solve_vrp_with_time_windows_with_or_tools(data):
 
     # Add Time Windows constraint.
     time = 'Time'
-    # routing.AddDimension(
-    #     evaluator_index= transit_callback_index,
-    #     slack_max=1000,  # allow waiting time, slack max specifies the max slack (delay) allowed for each location
-    #     capacity=0, # set to zero bc we dont consider capacity constraints
-    #     fix_start_cumul_to_zero=True, # the cumulative time at the start location is set to zero
-    #     name='Time')
 
-    # TODO: BALE ANTIKEIMENIKH SYARTHSH. ETSI OPWS EINAI TWRA BRISKEI APLA MIA
-    # EFIKTH LYSH APLA NA EINAI ENTOS DIMENSION_MAX_VALUE! ESY THES NA TO MINIMIZE
-    # ANEXARTHTA TO DIMENSION_MAX_VALUE!!!
+    # anexarthta apo to dimension max value briskei thn grhgoroterh lysh. Opote bazoume to dimension_max_value
+    # mia megalh posothta
     allowed_waiting_time = 100
-    dimension_max_value = 28 #43200
+    dimension_max_value = 28000 #43200
     routing.AddDimension(transit_callback_index,
                          allowed_waiting_time,
                          dimension_max_value,
