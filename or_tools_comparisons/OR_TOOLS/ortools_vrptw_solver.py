@@ -78,6 +78,7 @@ def solve_vrp_with_time_windows_with_or_tools(data):
 
         return torch.tensor(travel_time_from_one_node_to_other, dtype=int)
 
+    # TODO: make or not fail for use case 2
     # we set to minimize this function
     transit_callback_index = routing.RegisterTransitCallback(objective_function_to_minimize)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
@@ -102,8 +103,9 @@ def solve_vrp_with_time_windows_with_or_tools(data):
 
     # anexarthta apo to dimension max value briskei thn grhgoroterh lysh. Opote bazoume to dimension_max_value
     # mia megalh posothta
-    allowed_waiting_time = 100
-    dimension_max_value = 28000 #43200
+    allowed_waiting_time = 10000 #100
+    dimension_max_value = 280000 #43200
+
     routing.AddDimension(transit_callback_index,
                          allowed_waiting_time,
                          dimension_max_value,
@@ -154,10 +156,12 @@ def solve_vrp_with_time_windows_with_or_tools(data):
     # Solve the problem.
     solution = routing.SolveWithParameters(search_parameters)
 
-    routes = get_routes(solution, routing, manager)
+
 
     # Print solution on console.
     if solution:
+        routes = get_routes(solution, routing, manager)
+
         print_solution(data, manager, routing, solution)
 
     return routes

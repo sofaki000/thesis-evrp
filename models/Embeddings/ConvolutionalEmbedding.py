@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-class Encoder(nn.Module):
+class ConvolutionalEncoder(nn.Module):
     def __init__(self, in_feats, out_feats):
         super().__init__()
         self.embedding = nn.Conv1d(in_channels=in_feats,

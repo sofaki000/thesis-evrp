@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from dataset import update_fn
+from datasets.EVRP_dataset import update_fn
 from models.Attention import Attention
-from models.Embeddings.ConvolutionalEmbedding import Encoder
+from models.Embeddings.ConvolutionalEmbedding import ConvolutionalEncoder
 from models.Embeddings.GraphEmbeddings.GraphAttentionEncoder import GraphAttentionEncoder
 from models.EncoderDecoder import Decoder
 
@@ -25,9 +25,9 @@ class MHA_EVRP_solver(nn.Module):
         super().__init__()
         dropout= 0.5
         self.encoder_static = GraphAttentionEncoder(dynamic_features=dynamic_features)
-        self.encoder_dynamic = Encoder(in_feats=dynamic_features, out_feats=hidden_size)
+        self.encoder_dynamic = ConvolutionalEncoder(in_feats=dynamic_features, out_feats=hidden_size)
         self.drop_hh = nn.Dropout(p=dropout)
-        self.embedding_for_decoder_input = Encoder(in_feats=static_features, out_feats=hidden_size)
+        self.embedding_for_decoder_input = ConvolutionalEncoder(in_feats=static_features, out_feats=hidden_size)
 
         self.decoder_for_one_seq_len = Decoder(in_feats=hidden_size,hidden_size=hidden_size)
         self.mask = Parameter(torch.ones(1), requires_grad=False)

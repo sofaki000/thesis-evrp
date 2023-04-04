@@ -1,9 +1,7 @@
-import torch
 from torch.utils.data import DataLoader
 from datasets.VRPTW_dataset import VRPTW_data
-from or_tools_comparisons.VRPTW.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 from or_tools_comparisons.VRPTW.comparison_utilities import get_percentage_of_shorter_tours_VRPTW
-from or_tools_comparisons.VRPTW.main import train_vrptw_model, get_model_vrptw
+from or_tools_comparisons.VRPTW.main import get_model_vrptw
 from or_tools_comparisons.VRPTW.time_windows_utilities import create_gaant_chart_from_times
 from plot_utilities import show_tour, get_filename_time
 
@@ -74,9 +72,11 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    use_trained_model = True #False #
+    use_trained_model = False #True #
 
-    model = get_model_vrptw(use_pretrained_model=use_trained_model)
+    model = get_model_vrptw(use_pretrained_model=use_trained_model,
+                            epochs=epochs, train_loader=train_loader,
+                            validation_loader=validation_loader)
 
     compare_model_with_or_tools_VRPTW(model,  test_loader, file_name_for_storing_results_pntr)
 

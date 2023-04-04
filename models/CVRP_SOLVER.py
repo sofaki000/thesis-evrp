@@ -24,7 +24,8 @@ class CVRP_SOLVER_MODEL(nn.Module):
 
         elif use_pointer_network:
             print("Using pointer network model...")
-            self.model = CVRPSolver_PointerNetwork(update_mask=update_mask_cvrp, update_dynamic=update_dynamic)
+            self.model = CVRPSolver_PointerNetwork(update_mask=update_mask_cvrp,
+                                                   update_dynamic=update_dynamic)
 
     def forward(self, static, dynamic,distance_matrix=None):
         if self.use_pointer_network:

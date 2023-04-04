@@ -6,11 +6,12 @@ import numpy as np
 
 from or_tools_comparisons.OR_TOOLS.ortools_vrptw_solver import solve_vrp_with_time_windows_with_or_tools, \
     create_data_model_vrptw
-from or_tools_comparisons.VRPTW.use_cases.use_cases_utilities import  get_data_for_use_case1
+from or_tools_comparisons.VRPTW.use_cases.use_cases_utilities import get_data_for_use_case1, get_data_for_use_case2
 import torch
 
 from plot_utilities import show_tour_for_one_solution
 
+# When running this file we can understand how the or tools VRPTW explorer works.
 
 def calculate_total_metric_given_metric_matrix(distance_matrix, route, metric_name):
     # Initialize total distance to zero
@@ -31,12 +32,15 @@ def calculate_total_metric_given_metric_matrix(distance_matrix, route, metric_na
 
 
 
-locations, distance_matrix, time_windows = get_data_for_use_case1()
+locations, distance_matrix, time_windows = get_data_for_use_case2()
+#locations, distance_matrix, time_windows = get_data_for_use_case1()
 velocity= 10
 print(f'DISTANCE MATRIX: {distance_matrix}')
 time_matrix = distance_matrix # / velocity
 
-data_for_or_model = create_data_model_vrptw(time_matrix=torch.tensor(time_matrix), time_windows= torch.tensor(time_windows).transpose(1,0),num_vehicles=1)
+data_for_or_model = create_data_model_vrptw(time_matrix=torch.tensor(time_matrix),
+                                            time_windows= torch.tensor(time_windows).transpose(1,0),
+                                            num_vehicles=1)
 
 or_tools_solution = solve_vrp_with_time_windows_with_or_tools(data_for_or_model)[0]
 
@@ -52,4 +56,5 @@ locations = torch.tensor(locations).transpose(1,0)
 
 show_tour_for_one_solution(locations , distance_matrix,
                            or_tools_solution,
-                           'use_case_1_solution_or_tools',title="Use case 1, or-tools solution")
+                           'use_case_2_solution_or_tools',
+                           title="Use case 2, or-tools solution")

@@ -95,7 +95,7 @@ def show_tour(nodes, distance_matrix, model_tour, or_tour, filename, model_tour_
 
     plt.tight_layout()
 
-    plt.savefig(f"tours\\tour_{filename}.png")
+    plt.savefig(f"tours\\tour_{filename}_{get_filename_time()}.png")
 
 def show_tour_for_one_solution(nodes, distance_matrix,   or_tour, filename ,title):
     '''

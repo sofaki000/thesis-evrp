@@ -4,12 +4,11 @@ from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
-from datasets.VRPTW_dataset import VRPTW_data, VRPTW_data, reward_fn_vrptw
-from or_tools_comparisons.VRPTW.VRTW_SOLVER import VRPTW_SOLVER_MODEL
+from datasets.CVRP_dataset import reward_fn
+from datasets.VRPTW_dataset import VRPTW_data, reward_fn_vrptw
+from models.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 
-from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, \
-    create_distance_matrix_for_batch_elements
+from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
 
 
 def train_vrptw_model(model, epochs, train_loader, validation_loader):
@@ -32,6 +31,7 @@ def train_vrptw_model(model, epochs, train_loader, validation_loader):
             tour_indices, tour_logp, time_spent_at_each_route= model(static, dynamic, distance_matrix)
 
             reward = reward_fn_vrptw(static, tour_indices,time_spent_at_each_route)
+
             loss = torch.mean(reward.detach() * tour_logp.sum(dim=1))
 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1., norm_type=2)
@@ -75,14 +75,13 @@ def train_vrptw_model(model, epochs, train_loader, validation_loader):
 
 
 
-def get_model_vrptw(use_pretrained_model):
+def get_model_vrptw(use_pretrained_model,epochs, train_loader, validation_loader):
     model = VRPTW_SOLVER_MODEL()
-    PATH = "./model_vrptw.pt"
+    PATH = "trained_models/model_vrptw_conv1D_embeddings.pt"
     if use_pretrained_model:
         # load model from path
         print("Loading pretrained model...")
         model.load_state_dict(torch.load(PATH))
-
     else:
         # train new model
         print("Training model...")

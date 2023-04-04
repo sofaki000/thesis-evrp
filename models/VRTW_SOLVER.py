@@ -4,33 +4,46 @@ import torch.nn as nn
 ## TODO: create a model that can solve VRPTW
 from datasets.VRPTW_dataset import update_dynamic_state_vrptw, update_mask_vrptw
 from models.AttentionVariations.VRPTW_Attention import DoubleAttention
+from models.Embeddings.ConvolutionalEmbedding import ConvolutionalEncoder
+from models.Embeddings.LinearEncoder import LinearEncoder
 
 STATIC_SIZE = 4
 DYNAMIC_SIZE = 1
 HIDDEN_SIZE = 128
+logging_level = 1
 
-class Encoder(nn.Module):
-    def __init__(self, in_feats, out_feats):
+
+class EmbeddingVRPTW(nn.Module):
+    def __init__(self, in_feats, out_feats, use_convolutional=False):
         super().__init__()
-        self.num_of_features = in_feats
-        self.encoder = nn.Linear(in_features=in_feats, out_features=out_feats)
+
+        self.use_convolutional = use_convolutional
+
+        if self.use_convolutional:
+            self.embedding = ConvolutionalEncoder(in_feats=in_feats, out_feats=out_feats)
+
+        else:
+            self.embedding = LinearEncoder(in_feats=in_feats, out_feats=out_feats)
 
     def forward(self, input):
-        '''
-        input: [batch_size, num_nodes, num_features]
-        '''
-        assert input.size(2) == self.num_of_features
-        return self.encoder(input)
+
+        if self.use_convolutional:
+            return self.embedding(input.transpose(2,1)).transpose(2,1)
+
+        return self.embedding(input)
 
 class PointerNetworkVRPTW(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.encoder_static = Encoder(in_feats=STATIC_SIZE, out_feats= HIDDEN_SIZE)
+
+        self.encoder_static = EmbeddingVRPTW(in_feats=STATIC_SIZE, out_feats=HIDDEN_SIZE, use_convolutional=True)
+
         self.decoder = nn.GRU(input_size=HIDDEN_SIZE, hidden_size=HIDDEN_SIZE, batch_first=True)
 
-        self.dynamic_embedding = Encoder(in_feats=DYNAMIC_SIZE, out_feats= HIDDEN_SIZE)
-        self.decoder_input_dynamic_embedding = Encoder(in_feats=HIDDEN_SIZE, out_feats=HIDDEN_SIZE)
+        self.dynamic_embedding = EmbeddingVRPTW(in_feats=DYNAMIC_SIZE, out_feats= HIDDEN_SIZE, use_convolutional=True)
+
+        self.decoder_input_dynamic_embedding = EmbeddingVRPTW(in_feats=HIDDEN_SIZE, out_feats=HIDDEN_SIZE, use_convolutional=True)
 
         self.attention = DoubleAttention(HIDDEN_SIZE)
         dropout = 0.2
@@ -38,6 +51,8 @@ class PointerNetworkVRPTW(nn.Module):
         self.drop_hidden = nn.Dropout(p=dropout)
 
         self.max_steps = 1000
+
+
     def forward(self, static, dynamic, distance_matrix):
         '''
          static: [batch_size, static_features, sequence_length]
@@ -112,9 +127,17 @@ class PointerNetworkVRPTW(nn.Module):
             dynamic_embeddings = self.dynamic_embedding(dynamic.transpose(2,1))
 
 
+            # For understanding if solution is feasible:
+            if logging_level > 1:
+               print(f'Visiting index {chosen_indexes.item()} at time {dynamic.squeeze()[0]}')
+
 
             mask = update_mask_vrptw(static, dynamic, mask, chosen_indexes)
             old_idx = chosen_indexes
+
+
+            # you update the decoder input to take from the static_embeddings, the indexes you have chosen
+            decoder_input = static_embeddings[:,  chosen_indexes.long(),:][:, 0, :].unsqueeze(1)
 
         time_spent_at_each_route = dynamic.clone().squeeze(1)[:, 0]
 
@@ -123,11 +146,12 @@ class PointerNetworkVRPTW(nn.Module):
 
         return tours, tour_logp, time_spent_at_each_route
 
+
 class VRPTW_SOLVER_MODEL(nn.Module):
     def __init__(self):
         super().__init__()
-
         self.pntr_network_vrptw = PointerNetworkVRPTW()
+
     def forward(self, static, dynamic, distance_matrix):
          # xreiazomaste ton distance matrix giati gia na ananewsoume to mask
          # prepei na xeroume posh apostash dianhse -> posa metra xreiasthke apo thn mia
