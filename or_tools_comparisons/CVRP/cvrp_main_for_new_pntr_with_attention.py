@@ -31,6 +31,7 @@ def train_cvrp_model_pntr(model, epochs, train_loader, validation_loader):
             tour_indices, tour_logp = model(static, dynamic)
 
             reward = reward_fn(static, tour_indices)
+
             loss = torch.mean(reward.detach() * tour_logp.sum(dim=1))
 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1., norm_type=2)
@@ -83,5 +84,8 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    model = CVRP_SOLVER_MODEL(use_multihead_attention=False, use_pointer_network=True)
+    model = CVRP_SOLVER_MODEL(use_multihead_attention=False,
+                              use_pointer_network=True,
+                              use_pntr_with_attention_variations=True)
+
     train_cvrp_model_pntr(model, epochs, train_loader, validation_loader)

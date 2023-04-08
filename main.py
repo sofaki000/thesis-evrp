@@ -31,7 +31,9 @@ for epoch in range(epochs):
         reward_at_epoch = 0
         loss_at_epoch = 0
         for batch_id, (static, dynamic, distances) in enumerate(train_loader):
+
                 probabilities, tours, tour_logp = model(static, dynamic,distances)
+
                 rewards, _ = reward_func(tours, static, distances)
                 loss = torch.mean(rewards.detach() * tour_logp.sum(dim=1))
 

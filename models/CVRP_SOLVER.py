@@ -1,24 +1,29 @@
 import torch.nn as nn
 from models.MHA_MODELS.MHA_model_cvrp import MHA_CVRP_solver
-from or_tools_comparisons.vrp.cvrp_main import train_cvrp_model_pntr
-from or_tools_comparisons.vrp.cvrp_model import CVRPSolver_PointerNetwork
+from models.cvrp_pntr_network_two_attention_types import PointerNet
+from or_tools_comparisons.CVRP.cvrp_main import train_cvrp_model_pntr
+from or_tools_comparisons.CVRP.cvrp_model import CVRPSolver_PointerNetwork
 
 from datasets.CVRP_dataset import   update_mask_cvrp, update_dynamic
 
 # auth h classh dinei ena montelo pou lynei to CVRP. auth th
 # stigmh exoume dyo montela: ena pou xrhsimopoiei multihead attention
 # kai ena pou xrhsimopoiei plain pointer network.
-from or_tools_comparisons.vrp.multihead_attention_model_train import train_model_with_multihead_attention
+from or_tools_comparisons.CVRP.multihead_attention_model_train import train_model_with_multihead_attention
 
 
 class CVRP_SOLVER_MODEL(nn.Module):
-    def __init__(self, use_multihead_attention, use_pointer_network):
+    def __init__(self, use_multihead_attention,
+                 use_pointer_network,
+                 use_pntr_with_attention_variations):
         super().__init__()
         self.use_multihead_attention = use_multihead_attention
         self.use_pointer_network = use_pointer_network
 
-
-        if use_multihead_attention:
+        if use_pntr_with_attention_variations:
+            print("Using new pointer network model...")
+            self.model = PointerNet()
+        elif use_multihead_attention:
             print("Using multihead attention model...")
             self.model = MHA_CVRP_solver()
 

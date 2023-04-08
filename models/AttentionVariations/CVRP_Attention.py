@@ -74,6 +74,7 @@ class DoubleAttention(nn.Module):
         batch_size, hidden_size, seq_len = static_embedding.size()
 
         hidden =decoder_output.transpose(2,1).expand_as(static_embedding) #  # same as .expand(-1,-1,seq_len)
+
         hidden = torch.cat((static_embedding, dynamic_embedding, hidden), 1)
 
         # Broadcast some dimensions so we can do batch-matrix-multiply

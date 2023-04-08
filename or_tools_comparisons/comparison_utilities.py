@@ -1,5 +1,5 @@
 from or_tools_comparisons.common_utilities import get_tour_length_from_distance_matrix
-from or_tools_comparisons.vrp.cvrp_or_tools import create_data_model, train_or_model_for_cvrp, print_solution
+from or_tools_comparisons.CVRP.cvrp_or_tools import create_data_model, train_or_model_for_cvrp, print_solution
 from plot_utilities import create_distance_matrix
 
 
