@@ -116,6 +116,8 @@ class PointerNetwork(nn.Module):
 
             mask = self.update_mask(mask, dynamic, chosen_indexes)
 
+            # TODO: we dont update decoder input?
+
         tours = torch.cat(tours, 1)
         tour_logp = torch.cat(tour_logp, dim=1)  # (batch_size, seq_len)
 

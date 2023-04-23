@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
 
-from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
+from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
 
 
 

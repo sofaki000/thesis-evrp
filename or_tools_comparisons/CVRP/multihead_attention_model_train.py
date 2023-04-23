@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
 
-from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, create_distance_matrix, \
+from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, \
     create_distance_matrix_for_batch_elements
 
 
@@ -33,6 +33,7 @@ def train_model_with_multihead_attention(model, epochs, train_loader, validation
 
             distance_matrix = create_distance_matrix_for_batch_elements(static)
 
+            # TODO: checkare posa bhmata kanei to multihead attention model. einai too much
             tours, tour_logp  = model(static, dynamic,distance_matrix)
 
             reward = reward_fn(static, tours)
@@ -81,7 +82,7 @@ def train_model_with_multihead_attention(model, epochs, train_loader, validation
 if __name__ == '__main__':
     from models.CVRP_SOLVER import CVRP_SOLVER_MODEL
     epochs = 10
-    num_nodes = 13 # THELEI POLLA NODES ALLIWS LEADS TO NAN!!!
+    num_nodes = 4 #13 # THELEI POLLA NODES ALLIWS LEADS TO NAN!!!
     train_size = 100
     test_size = 100
     batch_size = 15
@@ -91,6 +92,6 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
-    model = CVRP_SOLVER_MODEL(use_multihead_attention=True, use_pointer_network=False)
+    model = CVRP_SOLVER_MODEL(use_multihead_attention=True, use_pointer_network=False,use_pntr_with_attention_variations=False)
 
     trained_model = train_model_with_multihead_attention(model, epochs, train_loader, validation_loader)

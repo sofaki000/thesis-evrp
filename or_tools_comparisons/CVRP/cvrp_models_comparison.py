@@ -1,10 +1,9 @@
 
 from torch.utils.data import DataLoader
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset
-from cvrp_main import train_cvrp_model_pntr
 from models.CVRP_SOLVER import get_trained_model_for_cvrp
 from or_tools_comparisons.comparison_utilities import get_percentage_of_shorter_tours_CVRP
-from plot_utilities import show_tour, get_filename_time
+from ploting.plot_utilities import show_tour, get_filename_time
 
 
 
