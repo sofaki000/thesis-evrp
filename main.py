@@ -4,8 +4,7 @@ from torch.utils.data import DataLoader
 
 from datasets.EVRP_dataset import GVRPDataset, reward_func
 from models.EVRP_SOLVER import EVRP_SOLVER
-from models.MHA_MODELS.MHA_model import MHA_EVRP_solver
-from plot_utilities import plot_losses_and_rewards
+from ploting.plot_utilities import plot_losses_and_rewards
 
 epochs = 20
 #model = EVRP_Solver()

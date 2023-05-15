@@ -2,14 +2,12 @@
 
 ####### FOR understanding our solveres we use a use case with VRPTW.
 
-import numpy as np
-
 from or_tools_comparisons.OR_TOOLS.ortools_vrptw_solver import solve_vrp_with_time_windows_with_or_tools, \
     create_data_model_vrptw
-from or_tools_comparisons.VRPTW.use_cases.use_cases_utilities import get_data_for_use_case1, get_data_for_use_case2
+from or_tools_comparisons.VRPTW.use_cases.use_cases_utilities import get_data_for_use_case2
 import torch
 
-from plot_utilities import show_tour_for_one_solution
+from ploting.plot_utilities import show_tour_for_one_solution
 
 # When running this file we can understand how the or tools VRPTW explorer works.
 

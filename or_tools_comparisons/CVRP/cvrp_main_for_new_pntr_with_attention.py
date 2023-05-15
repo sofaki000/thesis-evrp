@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
 
+folder_name  = "DOT_VS_BAH"
 
 from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, plot_reward
 from training_utilities.EarlyStopping import EarlyStopping
@@ -98,8 +99,8 @@ def train_cvrp_model_pntr(actor, epochs, train_loader, validation_loader, experi
         # epoch finished
         print(f'\nEpoch:{epoch}: Loss at epoch :{train_loss_at_epoch}, Reward at epoch:{train_reward_at_epoch}')
 
-    plot_train_and_validation_loss(epoch, train_loss_per_epoch, validation_loss_per_epoch, experiment_details)
-    plot_train_and_validation_reward(epoch, train_reward_per_epoch, validation_reward_per_epoch, experiment_details)
+    plot_train_and_validation_loss(epoch, train_loss_per_epoch, validation_loss_per_epoch, experiment_details, folder_name)
+    plot_train_and_validation_reward(epoch, train_reward_per_epoch, validation_reward_per_epoch, experiment_details, folder_name)
 
     return actor
 
@@ -114,15 +115,17 @@ if __name__ == '__main__':
     # STATIC_SIZE = 2
     # DYNAMIC_SIZE = 2
     # hidden_size = 128
-    epochs = 20
+    epochs = 15
     num_nodes = 4
-    train_size = 200#0
-    test_size = 100
-    batch_size = 10
+    train_size = 1000#0
+    test_size = 400
+    batch_size = 25#100
     STATIC_SIZE = 2
     DYNAMIC_SIZE = 2
     hidden_size = 128
 
+    # TODO: add metric for time taken for training
+    # TODO: add saving model
     experiment_details_for_dot = f'EXP1_WITHOUT_ACTOR_CRITIC_Dot_ATTENTION_ep={epochs}_nodes={num_nodes}_train_size={test_size}'
     experiment_details_for_bahdanau = f'EXP1_WITHOUT_ACTOR_CRITIC_Bahdanau_ATTENTION_ep={epochs}_nodes={num_nodes}_train_size={test_size}'
 
@@ -139,7 +142,8 @@ if __name__ == '__main__':
                               use_pntr_with_attention_variations=True)
 
     train_cvrp_model_pntr(actor,
-                          epochs, train_loader,
+                          epochs,
+                          train_loader,
                           validation_loader,
                           experiment_details_for_dot)
 

@@ -8,8 +8,32 @@ from ploting.plot_utilities import get_filename_time
 attention_weights_dir = "attention_weights_plots"
 os.makedirs(attention_weights_dir, exist_ok=True)
 
+
+def get_attention_weights_dir():
+    return attention_weights_dir
+def get_next_experiment_number(directory):
+    prefix = "exp"
+    existing_numbers = []
+
+    # Iterate over the directories in the given directory
+    for entry in os.scandir(directory):
+        if entry.is_dir() and entry.name.startswith(prefix):
+            try:
+                number = int(entry.name[len(prefix):])
+                existing_numbers.append(number)
+            except ValueError:
+                pass
+
+    # Find the next available number
+    next_number = 1
+    while next_number in existing_numbers:
+        next_number += 1
+
+    return next_number
+
 def plot_attention_weights_heatmap_for_each_timestep(attention_weights,
                                                      experiment_name,
+                                                     experiment_folder_name,
                                                      epoch):
     """
     Plots attention weights as a heatmap.
@@ -26,7 +50,10 @@ def plot_attention_weights_heatmap_for_each_timestep(attention_weights,
     plt.xlabel("Locations")
     plt.ylabel("Steps")
     plt.title(f"Attention Weights Heatmap, Epoch {epoch}")
-    plt.savefig(f"{attention_weights_dir}\\attention_weights_EPOCH{epoch}___{experiment_name}_{get_filename_time()}.png")
+
+    os.makedirs(f"{attention_weights_dir}\\{experiment_folder_name}", exist_ok=True)
+
+    plt.savefig(f"{attention_weights_dir}\\{experiment_folder_name}\\attention_weights_EPOCH{epoch}___{experiment_name}_{get_filename_time()}.png")
 
     plt.clf()
 

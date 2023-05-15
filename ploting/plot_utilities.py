@@ -114,33 +114,40 @@ def show_tour_for_one_solution(nodes, distance_matrix,   or_tour, filename ,titl
 
     plt.savefig(f"{filename}.png")
 
-def plot_train_and_validation_loss(epoch, train_loss, val_loss,experiment_details=""):
+def plot_train_and_validation_loss(epoch, train_loss, val_loss,experiment_details="", folder_name=None):
     title1 = f"Train loss epoch {epoch}, {train_loss[-1]:.2f}"
     title2 = f"Val loss epoch {epoch},{val_loss[-1]:.2f}"
     filename = f"losses_{experiment_details}_date{get_filename_time()}.png"
-    plot_train_and_validation_metrics("Loss", train_loss, val_loss, title1,title2, filename)
+    plot_train_and_validation_metrics("Loss", train_loss, val_loss, title1,title2, filename,folder_name)
 
-def plot_train_and_validation_reward(epoch, train_reward, val_reward,experiment_details=""):
+def plot_train_and_validation_reward(epoch, train_reward, val_reward,experiment_details="", folder_name=None):
     title1 = f"Train reward epoch {epoch}, {train_reward[-1]:.2f}"
     title2 = f"Val reward epoch {epoch},{val_reward[-1]:.2f}"
     filename = f"rewards_{experiment_details}_date{get_filename_time()}.png"
-    plot_train_and_validation_metrics("Reward", train_reward, val_reward, title1,title2, filename)
+    plot_train_and_validation_metrics("Reward", train_reward, val_reward, title1,title2, filename,folder_name)
 
 
-def plot_reward(rewards, title, filename):
+def plot_reward(rewards, title, filename,folder_name=None):
     plt.plot(rewards)
     plt.title(title)
     plt.xlabel("Epochs")
     plt.ylabel("Rewards")
     now = datetime.datetime.now()
     directory = f'metrics\\day_{now.day}'
+
+    if folder_name is not None:
+        directory = f'metrics\\day_{now.day}\\{folder_name}'
+
     os.makedirs(directory, exist_ok=True)
     plt.savefig(f'{directory}\\{filename}')
     plt.clf()
 
 
 
-def plot_train_and_validation_metrics(metric_name,train_metric, val_metric, title1,title2, filename):
+def plot_train_and_validation_metrics(metric_name,train_metric, val_metric,
+                                      title1,title2,
+                                      filename,
+                                      folder_name=None):
     clear_output(True)
     fig, axes = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 6))
 
@@ -157,7 +164,11 @@ def plot_train_and_validation_metrics(metric_name,train_metric, val_metric, titl
 
     # directory =f'metrics\\{epoch}'
     now = datetime.datetime.now()
-    directory = f'metrics\\day_{now.day}'
+    directory =  f'metrics\\day_{now.day}'
+
+    if folder_name is not None:
+        directory =  f'metrics\\day_{now.day}\\{folder_name}'
+
     os.makedirs(directory, exist_ok=True)
     plt.savefig(f'{directory}\\{filename}')
 

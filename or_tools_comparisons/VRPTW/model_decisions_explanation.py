@@ -1,7 +1,7 @@
 import torch
 from or_tools_comparisons.VRPTW.main import get_model_vrptw
 from or_tools_comparisons.VRPTW.use_cases.use_cases_utilities import get_data_for_use_case1
-from plot_utilities import show_tour_for_one_solution
+from ploting.plot_utilities import show_tour_for_one_solution
 
 ## This file is for understanding models decision based on a specific use case scenario
 locations, distance_matrix, time_windows = get_data_for_use_case1()

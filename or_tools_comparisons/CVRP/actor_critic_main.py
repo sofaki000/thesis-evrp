@@ -11,6 +11,7 @@ from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_an
 from training_utilities.EarlyStopping import EarlyStopping
 
 lr = 1e-2
+folder_name = "ACTOR_CRITIC_DOT_VS_BAH"
 
 def train_cvrp_model_pntr(actor, critic, epochs, train_loader, validation_loader, experiment_details):
     optimizer = optim.Adam(actor.parameters(), lr=lr)
@@ -116,9 +117,11 @@ def train_cvrp_model_pntr(actor, critic, epochs, train_loader, validation_loader
         # epoch finished
         print(f'\nEpoch:{epoch}: Loss at epoch :{train_loss_at_epoch}, Reward at epoch:{train_reward_at_epoch}')
 
-    plot_train_and_validation_loss(epoch, train_loss_per_epoch, validation_loss_per_epoch, experiment_details)
-    plot_train_and_validation_reward(epoch, train_reward_per_epoch, validation_reward_per_epoch, experiment_details)
-    plot_reward(critic_rewards_per_epoch, "Critic rewards", f'critic_rewards_{experiment_details}')
+
+    plot_train_and_validation_loss(epoch, train_loss_per_epoch, validation_loss_per_epoch, experiment_details, folder_name)
+    plot_train_and_validation_reward(epoch, train_reward_per_epoch, validation_reward_per_epoch, experiment_details, folder_name)
+
+    plot_reward(critic_rewards_per_epoch, "Critic rewards", f'critic_rewards_{experiment_details}',folder_name)
 
     return actor
 

@@ -15,14 +15,26 @@ from or_tools_comparisons.CVRP.multihead_attention_model_train import train_mode
 class CVRP_SOLVER_MODEL(nn.Module):
     def __init__(self, use_multihead_attention,
                  use_pointer_network,
-                 use_pntr_with_attention_variations):
+                 use_pntr_with_attention_variations,
+                 attention_type=None,
+                 experiment_name=None):
         super().__init__()
         self.use_multihead_attention = use_multihead_attention
         self.use_pointer_network = use_pointer_network
+        self.use_pntr_with_attention_variations =use_pntr_with_attention_variations
+        self.experiment_name = None
+        if experiment_name is not None:
+            self.experiment_name = experiment_name
+
+
+        ## TODO: add official docs pointer network
 
         if use_pntr_with_attention_variations:
             print("Using new pointer network model...")
-            self.model = PointerNet()
+            self.model = PointerNet(embedding_size=128,
+                                    hidden_size=128,
+                                    experiment_name=self.experiment_name,
+                                    attention_type=attention_type)
         elif use_multihead_attention:
             print("Using multihead attention model...")
             self.model = MHA_CVRP_solver()
@@ -33,7 +45,11 @@ class CVRP_SOLVER_MODEL(nn.Module):
                                                    update_dynamic=update_dynamic)
 
     def forward(self, static, dynamic,distance_matrix=None):
-        if self.use_pointer_network:
+
+        if self.use_pntr_with_attention_variations:
+            #TODO: refactor. here distance_matrix is number_of_epochs
+            return self.model(static, dynamic,distance_matrix)
+        elif self.use_pointer_network:
             return self.model(static, dynamic)
         else:
             return self.model(static, dynamic,distance_matrix)

@@ -3,7 +3,7 @@ from datasets.VRPTW_dataset import VRPTW_data
 from or_tools_comparisons.VRPTW.comparison_utilities import get_percentage_of_shorter_tours_VRPTW
 from or_tools_comparisons.VRPTW.main import get_model_vrptw
 from or_tools_comparisons.VRPTW.time_windows_utilities import create_gaant_chart_from_times
-from plot_utilities import show_tour, get_filename_time
+from ploting.plot_utilities import show_tour, get_filename_time
 
 file_name_for_storing_results_pntr = 'VRPTW_model_comparison_with_or_tools.txt'
 model_tour_title = 'Tour from model'

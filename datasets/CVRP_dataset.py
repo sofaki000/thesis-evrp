@@ -62,6 +62,49 @@ def should_terminate_cvrp(dynamic):
 
     return is_done.all()
 
+def update_mask_cvrp_v2(dynamic, chosen_idx=None):
+        """Updates the mask used to hide non-valid states.
+        ----------   Parameters  ----------
+        dynamic: torch.autograd.Variable of size (batch_size, num_feats, seq_len)
+        dynamic: [loads, demands]
+        """
+
+        # Convert floating point to integers for calculations
+        loads = dynamic.data[:, 0]  # (batch_size, seq_len)
+        demands = dynamic.data[:, 1]  # (batch_size, seq_len)
+
+        # If there is no positive demand left, we can end the tour.
+        # Note that the first node is the depot, which always has a negative demand
+        if demands.eq(0).all(): # There are no demands! We finish tour
+            return demands * 0.
+
+        # Otherwise, we can choose to go anywhere where demand is > 0
+        new_mask = demands.ne(0) * demands.lt(loads)
+
+        if chosen_idx == None:
+            return new_mask
+
+            # are demands less than loads?  demands.lt(loads) -> returns mask where thats true!
+        # We should avoid traveling to the depot back-to-back
+        can_go_to_depot = chosen_idx.ne(0) # poia epitrepetai (True) na pane home
+
+        if can_go_to_depot.any():# mporoun na pane sto depot again?
+            new_mask[can_go_to_depot.nonzero(), 0] = 1. # 1 means can go
+        if (~can_go_to_depot).any():
+            new_mask[(~can_go_to_depot).nonzero(), 0] = 0.
+
+        # ... unless we're waiting for all other samples in a minibatch to finish
+        has_no_load = loads[:, 0].eq(0).float()
+        has_no_demand = demands[:, 1:].sum(1).eq(0).float()
+
+        combined = (has_no_load + has_no_demand).gt(0)
+        if combined.any():
+            new_mask[combined.nonzero(), 0] = 1.
+            new_mask[combined.nonzero(), 1:] = 0.
+
+        return new_mask.float() # 1/True: u can go, 0/false you cant go
+
+
 def update_mask_cvrp(mask, dynamic, chosen_idx=None):
         """Updates the mask used to hide non-valid states.
         ----------   Parameters  ----------

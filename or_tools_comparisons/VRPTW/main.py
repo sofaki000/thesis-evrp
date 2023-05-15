@@ -8,7 +8,7 @@ from datasets.CVRP_dataset import reward_fn
 from datasets.VRPTW_dataset import VRPTW_data, reward_fn_vrptw
 from models.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 
-from plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
+from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward
 
 
 def train_vrptw_model(model, epochs, train_loader, validation_loader):

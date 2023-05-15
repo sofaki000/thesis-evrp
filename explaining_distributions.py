@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from plot_utilities import create_distance_matrix
+from ploting.plot_utilities import create_distance_matrix
 
 probs = torch.randint(10, (1,4)) #torch.ones(2,5)
 
