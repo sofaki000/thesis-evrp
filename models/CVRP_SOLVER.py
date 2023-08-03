@@ -17,7 +17,8 @@ class CVRP_SOLVER_MODEL(nn.Module):
                  use_pointer_network,
                  use_pntr_with_attention_variations,
                  attention_type=None,
-                 experiment_name=None):
+                 experiment_name=None,
+                 attention_weights_photos_store_folder=None):
         super().__init__()
         self.use_multihead_attention = use_multihead_attention
         self.use_pointer_network = use_pointer_network
@@ -34,7 +35,8 @@ class CVRP_SOLVER_MODEL(nn.Module):
             self.model = PointerNet(embedding_size=128,
                                     hidden_size=128,
                                     experiment_name=self.experiment_name,
-                                    attention_type=attention_type)
+                                    attention_type=attention_type,
+                                    attention_weights_photos_store_folder=attention_weights_photos_store_folder)
         elif use_multihead_attention:
             print("Using multihead attention model...")
             self.model = MHA_CVRP_solver()
@@ -66,3 +68,5 @@ def get_trained_model_for_cvrp(use_multihead_attention, use_pointer_network,epoc
     elif use_multihead_attention:
         model = CVRP_SOLVER_MODEL(use_multihead_attention=True, use_pointer_network=False)
         return train_model_with_multihead_attention(model, epochs, train_loader, validation_loader)
+
+

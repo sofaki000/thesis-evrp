@@ -9,9 +9,12 @@ from models.CVRP_Critic import StateCritic
 
 from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, plot_reward
 from training_utilities.EarlyStopping import EarlyStopping
+from training_utilities.SavingAndLoadingUtilities import saveModelToPath
 
 lr = 1e-2
-folder_name = "ACTOR_CRITIC_DOT_VS_BAH"
+folder_name = "ACTOR_CRITIC_DOT_VS_BAH\\day_29"
+STATIC_SIZE = 2
+DYNAMIC_SIZE = 2
 
 def train_cvrp_model_pntr(actor, critic, epochs, train_loader, validation_loader, experiment_details):
     optimizer = optim.Adam(actor.parameters(), lr=lr)
@@ -123,30 +126,17 @@ def train_cvrp_model_pntr(actor, critic, epochs, train_loader, validation_loader
 
     plot_reward(critic_rewards_per_epoch, "Critic rewards", f'critic_rewards_{experiment_details}',folder_name)
 
+    saveModelToPath(actor, f"models\\{experiment_details}")
+
     return actor
 
 
-if __name__ == '__main__':
-    # testing purposes!!
-    # epochs = 10
-    # num_nodes = 4
-    # train_size = 9#0
-    # test_size = 10
-    # batch_size = 3
-    # STATIC_SIZE = 2
-    # DYNAMIC_SIZE = 2
-    # hidden_size = 128
-    epochs = 20
-    num_nodes = 4
-    train_size = 200#0
-    test_size = 100
-    batch_size = 10
-    STATIC_SIZE = 2
-    DYNAMIC_SIZE = 2
-    hidden_size = 128
 
-    experiment_details_for_dot = f'HIGHER_max_grad_norm_ACTOR_CRITIC_EXPERIMENT_Dot_ATTENTION_ep={epochs}_nodes={num_nodes}_train_size={test_size}'
-    experiment_details_for_bahdanau = f'HIGHER_max_grad_norm_ACTOR_CRITIC_EXPERIMENT_Bahdanau_ATTENTION_ep={epochs}_nodes={num_nodes}_train_size={test_size}'
+
+def run_actor_critic_dot_vs_additive(epochs,num_nodes ,  train_size , test_size ,  batch_size , hidden_size):
+    experiment_details_for_dot = f'MORE_TRAIN_ACT_CRIT_DotA_ep={epochs}_hz={hidden_size}_nodes={num_nodes}_train_size={test_size}'
+    experiment_details_for_bahdanau = f'MORE_TRAIN_ACT_CRIT_AdditA_ep={epochs}_hz={hidden_size}_nodes={num_nodes}_train_size={test_size}'
+
 
     from models.CVRP_SOLVER import CVRP_SOLVER_MODEL
     train_dataset = CapacitatedVehicleRoutingDataset(num_samples=train_size, input_size=num_nodes)
@@ -158,7 +148,8 @@ if __name__ == '__main__':
                               attention_type='Dot',
                               experiment_name = experiment_details_for_dot,
                               use_pointer_network=True,
-                              use_pntr_with_attention_variations=True)
+                              use_pntr_with_attention_variations=True,
+                              attention_weights_photos_store_folder="actor_critic_attention_weights")
 
     critic_dot_attention = StateCritic(STATIC_SIZE, DYNAMIC_SIZE,  hidden_size)
     train_cvrp_model_pntr(actor,critic_dot_attention,
@@ -172,13 +163,40 @@ if __name__ == '__main__':
     model_bahdanau_attention = CVRP_SOLVER_MODEL(use_multihead_attention=False,
                                             attention_type='Bahdanau',
                                             use_pointer_network=True,
-                                            use_pntr_with_attention_variations=True)
+                                            use_pntr_with_attention_variations=True,
+                                            attention_weights_photos_store_folder="actor_critic_attention_weights"    )
 
     critic_bahdanau_attention = StateCritic(STATIC_SIZE, DYNAMIC_SIZE,  hidden_size)
+
     train_cvrp_model_pntr(model_bahdanau_attention,
                           critic_bahdanau_attention,
                           epochs, train_loader,
                           validation_loader,
                           experiment_details_for_bahdanau)
+if __name__ == '__main__':
+    epochs = 25
+    num_nodes = 40
+    train_size = 1000
+    test_size = 400
+    batch_size = 100
+    hidden_size = 256
 
+    run_actor_critic_dot_vs_additive(epochs, num_nodes, train_size, test_size, batch_size, hidden_size)
 
+    epochs = 25
+    num_nodes = 100
+    train_size = 1000
+    test_size = 400
+    batch_size = 100
+    hidden_size = 256
+
+    run_actor_critic_dot_vs_additive(epochs, num_nodes, train_size, test_size, batch_size, hidden_size)
+
+    epochs = 25
+    num_nodes = 200
+    train_size = 1000
+    test_size = 400
+    batch_size = 100
+    hidden_size = 256
+
+    run_actor_critic_dot_vs_additive(epochs, num_nodes, train_size, test_size, batch_size, hidden_size)

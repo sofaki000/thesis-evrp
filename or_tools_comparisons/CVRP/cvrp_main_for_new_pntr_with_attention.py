@@ -115,14 +115,14 @@ if __name__ == '__main__':
     # STATIC_SIZE = 2
     # DYNAMIC_SIZE = 2
     # hidden_size = 128
-    epochs = 15
+    epochs = 10
     num_nodes = 4
-    train_size = 1000#0
-    test_size = 400
+    train_size = 250#0
+    test_size = 100
     batch_size = 25#100
     STATIC_SIZE = 2
     DYNAMIC_SIZE = 2
-    hidden_size = 128
+    hidden_size = 256
 
     # TODO: add metric for time taken for training
     # TODO: add saving model

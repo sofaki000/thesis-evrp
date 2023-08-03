@@ -22,24 +22,9 @@ static_features = 2
 # 1st way: use ready attention
 # 2nd way: see how query can be changed to include dynamic state
 class Attention(nn.Module):
-    def __init__(self, hidden_size, use_tanh=False, C=10, name='Bahdanau'):
+    def __init__(self, hidden_size,  C=10 ):
         super(Attention, self).__init__()
-
-        self.use_tanh = use_tanh
         self.C = C
-        self.name = name
-
-        if name == 'Bahdanau':
-            print("Using bahdanau attention...")
-            self.W_query = nn.Linear(hidden_size, hidden_size)
-            self.W_ref = nn.Conv1d(hidden_size, hidden_size, 1, 1)
-
-            V = torch.FloatTensor(hidden_size)
-
-            self.V = nn.Parameter(V)
-            self.V.data.uniform_(-(1. / math.sqrt(hidden_size)), 1. / math.sqrt(hidden_size))
-        else:
-            print("Using dot....")
 
         # question: How to add dynamic state as part of query OR ref?
         # As part of ref:
@@ -48,14 +33,18 @@ class Attention(nn.Module):
 
         # For attempt 2 we need this layer:
         self.getQueryFromConcatenation = nn.Linear(in_features=hidden_size*2, out_features=hidden_size)
-    def forward(self, query, last_decoder_output, dynamic_embeddings, static_embeddings):
+        self.linear = nn.Linear(in_features=hidden_size, out_features=hidden_size)
+    def forward(self, query, last_decoder_output, dynamic_embeddings, dynamic_embeddingsstep,static_embeddings):
         """
         Args:
             query: [batch_size x hidden_size]
             dynamic_embeddings: [ batch_size, seq_len, hidden_size]
+            dynamic_embeddingsstep: [ batch_size, hidden_size]
             static_embeddings: [ batch_size, seq_len, hidden_size]
             ref:   [batch_size x seq_len x hidden_size]
         """
+        # ΤODO: pws mporeis na paizeis me to ref? isws anti gia ta static embeddings to static sketo?
+        # etsi tha eprepe isws na pairname to dynamic step anti gia to dynamic embedding step
 
         # Attempt 1: ref is the concatenated dynamic + static embeddings
         # concatenated_embeddings = torch.cat((dynamic_embeddings, static_embeddings) , dim=2)
@@ -65,87 +54,31 @@ class Attention(nn.Module):
 
         # Attempt 2:
         # ref is the static embeddings
-        ref = static_embeddings
+        ref = static_embeddings # aka keys
         # query is the concatenation of previous output from decoder and current decoder state (hidden state)
-        query = self.getQueryFromConcatenation(torch.cat((last_decoder_output , query), dim=1))
+        # initial failed attempt
+        # query = self.getQueryFromConcatenation(torch.cat((last_decoder_output , query), dim=1))
+
+        # using dynamic embedding step to take into consideration for context
+        #query = self.getQueryFromConcatenation(torch.cat((dynamic_embeddingsstep, query), dim=1))
+
+
+        # no3: not using the static when calculating the query
+        query = dynamic_embeddingsstep
 
         batch_size = ref.size(0)
         seq_len = ref.size(1)
 
-        if self.name == 'Bahdanau':
-            ref = ref.permute(0, 2, 1)
-            query = self.W_query(query).unsqueeze(2)  # [batch_size x hidden_size x 1]
-            ref = self.W_ref(ref)  # [batch_size x hidden_size x seq_len]
-            expanded_query = query.repeat(1, 1, seq_len)  # [batch_size x hidden_size x seq_len]
-            V = self.V.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1)  # [batch_size x 1 x hidden_size]
-            logits = torch.bmm(V, F.tanh(expanded_query + ref)).squeeze(1)
+        query = query.unsqueeze(2)
+        # logits einai to probability to visit each index
+        logits = torch.bmm(ref, query).squeeze(2)  # [batch_size x seq_len x 1]
+        ref = ref.permute(0, 2, 1)
 
-        elif self.name == 'Dot':
-            query = query.unsqueeze(2)
-            # logits einai to probability to visit each index
-            logits = torch.bmm(ref, query).squeeze(2)  # [batch_size x seq_len x 1]
-            ref = ref.permute(0, 2, 1)
-        else:
-            raise NotImplementedError
-
-        if self.use_tanh:
-            logits = self.C * F.tanh(logits)
-        else:
-            logits = logits
+        logits = self.C * F.tanh(logits)
 
         return ref, logits # logits antistoixoun se probability_to_visit_each_index
 
-class Attention_using_only_static_feats(nn.Module):
-    def __init__(self, hidden_size, use_tanh=False, C=10, name='Bahdanau'):
-        super(Attention_using_only_static_feats, self).__init__()
 
-        self.use_tanh = use_tanh
-        self.C = C
-        self.name = name
-
-        if name == 'Bahdanau':
-            print("Using bahdanau attention...")
-            self.W_query = nn.Linear(hidden_size, hidden_size)
-            self.W_ref = nn.Conv1d(hidden_size, hidden_size, 1, 1)
-
-            V = torch.FloatTensor(hidden_size)
-
-            self.V = nn.Parameter(V)
-            self.V.data.uniform_(-(1. / math.sqrt(hidden_size)), 1. / math.sqrt(hidden_size))
-
-    def forward(self, query, ref):
-        """
-        Args:
-            query: [batch_size x hidden_size]
-            ref:   ]batch_size x seq_len x hidden_size]
-        """
-
-        batch_size = ref.size(0)
-        seq_len = ref.size(1)
-
-        if self.name == 'Bahdanau':
-            ref = ref.permute(0, 2, 1)
-            query = self.W_query(query).unsqueeze(2)  # [batch_size x hidden_size x 1]
-            ref = self.W_ref(ref)  # [batch_size x hidden_size x seq_len]
-            expanded_query = query.repeat(1, 1, seq_len)  # [batch_size x hidden_size x seq_len]
-            V = self.V.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1)  # [batch_size x 1 x hidden_size]
-            logits = torch.bmm(V, F.tanh(expanded_query + ref)).squeeze(1)
-
-        elif self.name == 'Dot':
-            query = query.unsqueeze(2)
-
-            # mallon ta logits einai to probability to visit each index
-            logits = torch.bmm(ref, query).squeeze(2)  # [batch_size x seq_len x 1]
-            ref = ref.permute(0, 2, 1)
-        else:
-            raise NotImplementedError
-
-        if self.use_tanh:
-            logits = self.C * F.tanh(logits)
-        else:
-            logits = logits
-
-        return ref, logits #logits antistoixoun se probability_to_visit_each_index
 
 # TODO: use this for embedding
 class GraphEmbedding(nn.Module):
@@ -167,16 +100,19 @@ class GraphEmbedding(nn.Module):
         embedded = torch.cat(embedded, 1)
         return embedded
 
+
+def hasAnyCustomerDemands(dynamic):
+    # aka exoun ola ta demands ligotera h isa tou 0?
+    return torch.all(torch.le(dynamic[:,1,1:],0))
+
 class PointerNet(nn.Module):
     def __init__(self,
                  embedding_size,
                  hidden_size,
-                 attention_type,
+                 experiment_folder_name,
                  experiment_name=None,
                  n_glimpses=5,
-                 tanh_exploration=10,
-                 use_tanh=False,
-                 attention_weights_photos_store_folder=None):
+                 tanh_exploration=10 ):
         super(PointerNet, self).__init__()
 
         self.experiment_name = experiment_name
@@ -192,24 +128,16 @@ class PointerNet(nn.Module):
         #nn.Embedding(embedding_size, embedding_size)
         self.encoder = nn.LSTM(embedding_size, hidden_size, batch_first=True)
         self.decoder = nn.LSTM(embedding_size, hidden_size, batch_first=True)
-
-        print(f'USING ATTENTION {attention_type}')
-        self.pointer = Attention(hidden_size, use_tanh=use_tanh, C=tanh_exploration , name = attention_type)
-        self.glimpse = Attention(hidden_size, use_tanh=False ,name = attention_type )
+        self.pointer = Attention(hidden_size, C=tanh_exploration)
+        self.glimpse = Attention(hidden_size, C=tanh_exploration)
 
         self.decoder_start_input = nn.Parameter(torch.FloatTensor(embedding_size))
         self.decoder_start_input.data.uniform_(-(1. / math.sqrt(embedding_size)), 1. / math.sqrt(embedding_size))
 
         # self.criterion = nn.CrossEntropyLoss()
-        self.max_steps = 5 #1000
+        self.max_steps = 1000
 
         self.embedding_size = embedding_size
-
-        if attention_weights_photos_store_folder:
-            os.makedirs(attention_weights_photos_store_folder, exist_ok=True)
-            experiment_folder_name = f"{attention_weights_photos_store_folder}\\exp{get_next_experiment_number(get_attention_weights_dir())}"
-        else:
-            experiment_folder_name = f"exp{get_next_experiment_number(get_attention_weights_dir())}"
 
         self.experiment_folder_name = experiment_folder_name
 
@@ -238,25 +166,35 @@ class PointerNet(nn.Module):
         batch_size = static.size(0)
         seq_len = static.size(2)
 
-        static_embedding = self.embedding(static)
+        static_embedding = self.embedding(static).transpose(2,1)
 
         dynamic_embedding = self.dynamic_embedding(dynamic).transpose(2,1)
 
-        encoder_outputs, (hidden, context) = self.encoder(static_embedding.transpose(2,1))
+        encoder_outputs, (hidden, context) = self.encoder(static_embedding)
 
         mask = torch.ones(batch_size, seq_len).byte()
 
         chosen_indexes = None
 
-        decoder_input = self.decoder_start_input.unsqueeze(0).repeat(batch_size, 1)
 
         attention_weights_at_each_timestep  = []
 
         tours = []
         tour_logp = []
 
+
+        initial_chosen_indexes = torch.zeros(batch_size)
+        attentionContextDynamicEmb = torch.index_select(dynamic_embedding, 1, initial_chosen_indexes.long())[:, 0, :]
+
+        # dokimasoume na dwsoume to prwto decoder input sto index 0
+        decoder_input = torch.index_select(dynamic_embedding , 1, initial_chosen_indexes.long())[:, 0, :] #torch.index_select(dynamic_embedding, 1, initial_chosen_indexes.long())[:, 0, :]  # self.decoder_start_input.unsqueeze(0).repeat(batch_size, 1)
+
+
+        step_counter =0
         for i in range(self.max_steps):
-            if not mask.byte().any(): # if can't visit any more indexes, finish it
+
+            step_counter = step_counter+1
+            if not mask.byte().any() or hasAnyCustomerDemands(dynamic): # if can't visit any more indexes, finish it
                 break
 
             last_decoder_output, (hidden, context) = self.decoder(decoder_input.unsqueeze(1), (hidden, context))
@@ -265,27 +203,28 @@ class PointerNet(nn.Module):
             query = hidden.squeeze(0) # query is the last output from decoder + current decoder
             # state we will later add!
 
-            for i in range(self.n_glimpses):
-                ref, logits = self.glimpse(query, last_decoder_output, dynamic_embedding, encoder_outputs)
-                ## TODO : understand glimpses!!!
-                #TODO: do we need to update logits here?
-                # logits, mask = self.apply_mask_to_logits(logits, mask, idxs)
-                # logits, mask = self.apply_mask_to_logits(mask, dynamic,logits, chosen_indexes)
-                query = torch.bmm(ref, F.softmax(logits).unsqueeze(2)).squeeze(2)
+            # for i in range(self.n_glimpses):
+            #     ref, logits = self.glimpse(query, last_decoder_output, dynamic_embedding,attentionContextDynamicEmb, encoder_outputs)
+            #     ## TODO : understand glimpses!!!
+            #     #TODO: do we need to update logits here?
+            #     # logits, mask = self.apply_mask_to_logits(logits, mask, idxs)
+            #     # logits, mask = self.apply_mask_to_logits(mask, dynamic,logits, chosen_indexes)
+            #     query = torch.bmm(ref, F.softmax(logits).unsqueeze(2)).squeeze(2)
 
-            _, logits = self.pointer(query,last_decoder_output, dynamic_embedding, encoder_outputs)
+            _, logits = self.pointer(query,last_decoder_output,dynamic_embedding, attentionContextDynamicEmb, encoder_outputs)
 
 
             # probably we should use these logits to chose indexes
-
             logits, mask = self.apply_mask_to_logits(mask,dynamic, logits, chosen_indexes)
 
-            if not mask.byte().any():
-                # if should_terminate_cvrp(dynamic):
-                break
+            # if not mask.byte().any():
+            #     # if should_terminate_cvrp(dynamic):
+            #     break
 
             # decoder_input = embedded[:, i, :] #target_embedded[:, i, :]
 
+            # if logits are inf (some routes have finished), we go back to 0
+            logits[torch.isinf(logits)] = 0.0
             # assert decoder_input.size(0) == batch_size and decoder_input.size(1) == 1
             # assert decoder_input.size(2) == self.embedding_size
             # this is for supervised learning. we want rl
@@ -294,10 +233,11 @@ class PointerNet(nn.Module):
             probability_to_visit_each_vertex = F.softmax(logits + mask.log(), dim=1)  # (batch, seq_len)
 
 
+
             ####
             m = torch.distributions.Categorical(probability_to_visit_each_vertex)
             ptr = m.sample()
-            chosen_indexes = ptr.data.detach()
+            chosen_indexes = ptr.data.detach() # [batch_size]
             logp = m.log_prob(ptr)
 
             dynamic = update_dynamic(dynamic, chosen_indexes)
@@ -307,26 +247,22 @@ class PointerNet(nn.Module):
             attention_weights_at_each_timestep.append(attention_weights_at_current_time_step)
 
             # we update dynamic input based on chosen indexes
-            decoder_input = static_embedding[:, :, chosen_indexes.long()] [:,:,0]  #embedded[:, chosen_indexes.long(), :][:, 0, :]
+            decoder_input = torch.index_select(dynamic_embedding, 1, chosen_indexes.long())[:, 0, :] # static_embedding[:, :, chosen_indexes.long()] [:,:,0]  #embedded[:, chosen_indexes.long(), :][:, 0, :]
 
             # we store the result
             tour_logp.append(logp.unsqueeze(1))
             tours.append(chosen_indexes.unsqueeze(1)) # chosen_indexes: [batch_size]
+
+
+            # we update the context we will give to attention
+            attentionContextDynamicEmb = torch.index_select(dynamic_embedding, 1, chosen_indexes.long())[:, 0, :]
 
         #they were returning: return loss / seq_len
 
         tours = torch.cat(tours, 1)
         tour_logp = torch.cat(tour_logp, dim=1)  # (batch_size, seq_len)
 
-
-        if current_epoch is not None:
-            # plot attention weights at each time step for the current epoch.
-            # the goal is to see how attention changes with the training for the same data.
-            plot_attention_weights_heatmap_for_each_timestep(attention_weights_at_each_timestep,
-                                                             self.experiment_name ,
-                                                             self.experiment_folder_name,
-                                                             current_epoch)
-
+        print(f'Did {step_counter} steps')
         return tours, tour_logp
 
 

@@ -37,7 +37,6 @@ def plot_attention_weights_heatmap_for_each_timestep(attention_weights,
                                                      epoch):
     """
     Plots attention weights as a heatmap.
-
     Args:
         attention_weights (list): List of attention weights for each step,
          shape (n_steps, n_locations)

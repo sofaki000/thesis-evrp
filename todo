@@ -1,0 +1,6 @@
+#TODO: at 7 june
+1.tsekare apotelesmata evrp ston f'more_nodes_ep={epochs}_nodes={num_nodes}_train_size={train_size}_bs={batch_size}' folder
+2.tsekare results apo actor critic main
+#TODO: < 7 june
+1.tsekare results apo actor critic main
+2.EVRP: se auto to main ta 4 experiments ti eginan (2 sou emeinan me 10 nodes)

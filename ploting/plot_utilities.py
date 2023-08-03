@@ -9,6 +9,8 @@ from IPython.core.display_functions import clear_output
 from matplotlib import pyplot as plt
 from scipy.spatial import distance_matrix
 
+from config import rewards_dir, losses_dir
+
 
 def create_distance_matrix(points):
     return distance_matrix(points, points)
@@ -24,7 +26,6 @@ def create_distance_matrix_for_batch_elements(static):
 
     return distances_per_batch
 
-from config import losses_dir,rewards_dir
 
 
 def get_filename_time():
@@ -118,12 +119,24 @@ def plot_train_and_validation_loss(epoch, train_loss, val_loss,experiment_detail
     title1 = f"Train loss epoch {epoch}, {train_loss[-1]:.2f}"
     title2 = f"Val loss epoch {epoch},{val_loss[-1]:.2f}"
     filename = f"losses_{experiment_details}_date{get_filename_time()}.png"
+
+    os.makedirs(folder_name, exist_ok=True)
     plot_train_and_validation_metrics("Loss", train_loss, val_loss, title1,title2, filename,folder_name)
 
-def plot_train_and_validation_reward(epoch, train_reward, val_reward,experiment_details="", folder_name=None):
-    title1 = f"Train reward epoch {epoch}, {train_reward[-1]:.2f}"
-    title2 = f"Val reward epoch {epoch},{val_reward[-1]:.2f}"
+
+def plot_train_and_validation_distance(epoch, train_reward, val_reward,experiment_details="", folder_name=None):
+    title1 = f"Distances at training. Stopped at epoch {epoch}"
+    title2 = f"Distances at validation. Stopped at epoch {epoch}"
     filename = f"rewards_{experiment_details}_date{get_filename_time()}.png"
+    os.makedirs(folder_name, exist_ok=True)
+    plot_train_and_validation_metrics("Distance", train_reward, val_reward, title1,title2, filename,folder_name)
+
+
+def plot_train_and_validation_reward(epoch, train_reward, val_reward,experiment_details="", folder_name=None):
+    title1 = f"Train reward epoch {epoch}"
+    title2 = f"Val reward epoch {epoch}"
+    filename = f"rewards_{experiment_details}_date{get_filename_time()}.png"
+    os.makedirs(folder_name, exist_ok=True)
     plot_train_and_validation_metrics("Reward", train_reward, val_reward, title1,title2, filename,folder_name)
 
 
@@ -139,7 +152,7 @@ def plot_reward(rewards, title, filename,folder_name=None):
         directory = f'metrics\\day_{now.day}\\{folder_name}'
 
     os.makedirs(directory, exist_ok=True)
-    plt.savefig(f'{directory}\\{filename}')
+    plt.savefig(f'{directory}\\{filename}.png')
     plt.clf()
 
 
@@ -149,7 +162,7 @@ def plot_train_and_validation_metrics(metric_name,train_metric, val_metric,
                                       filename,
                                       folder_name=None):
     clear_output(True)
-    fig, axes = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 6))
 
     # Add x and y labels to all subplots
     for ax in axes.flat:
@@ -164,18 +177,18 @@ def plot_train_and_validation_metrics(metric_name,train_metric, val_metric,
 
     # directory =f'metrics\\{epoch}'
     now = datetime.datetime.now()
-    directory =  f'metrics\\day_{now.day}'
+    directory = f'metrics\\day_{now.day}\\hour_{now.hour}'
 
     if folder_name is not None:
-        directory =  f'metrics\\day_{now.day}\\{folder_name}'
+        directory = f'metrics\\day_{now.day}\\hour_{now.hour}\\{folder_name}'
 
     os.makedirs(directory, exist_ok=True)
     plt.savefig(f'{directory}\\{filename}')
 
     plt.clf()
 
-# for testing
-plot_train_and_validation_metrics("Test",[1,2,3,4], [1,2,3,4], "title 1", "title 2", "test.png")
+# # for testing
+# plot_train_and_validation_metrics("Test",[1,2,3,4], [1,2,3,4], "title 1", "title 2", "test.png")
 
 def plot_losses_and_rewards(losses_per_epochs, rewards_per_epochs):
     time = get_filename_time()

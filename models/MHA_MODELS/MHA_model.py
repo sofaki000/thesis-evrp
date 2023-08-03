@@ -24,7 +24,7 @@ class MHA_EVRP_solver(nn.Module):
     def __init__(self):
         super().__init__()
         dropout= 0.5
-        self.encoder_static = GraphAttentionEncoder(dynamic_features=dynamic_features)
+        self.encoder_static =  GraphAttentionEncoder(dynamic_features=dynamic_features)
         self.encoder_dynamic = ConvolutionalEncoder(in_feats=dynamic_features, out_feats=hidden_size)
         self.drop_hh = nn.Dropout(p=dropout)
         self.embedding_for_decoder_input = ConvolutionalEncoder(in_feats=static_features, out_feats=hidden_size)
