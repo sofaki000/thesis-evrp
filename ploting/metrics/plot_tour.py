@@ -26,17 +26,23 @@ def print_tensor(tensor):
 
 
 
+def format_tour(  model_tour):
+    """
+    Formats the target tour and model result tour side by side.
+    Parameters:
+
+        model_tour (list): List of indices representing the model result tour.
+    """
+    print("Model Result Tensor:")
+    print_tensor(model_tour)
+
 
 def format_tours(target_tour, model_tour):
     """
     Formats the target tour and model result tour side by side.
-
     Parameters:
         target_tour (list): List of indices representing the target tour.
         model_tour (list): List of indices representing the model result tour.
-
-    Returns:
-        str: Nicely formatted string displaying both tours with differences highlighted.
     """
     print("Target Tensor:")
     print_tensor(target_tour)

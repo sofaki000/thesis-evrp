@@ -4,7 +4,7 @@ from models.cvrp_pntr_network_two_attention_types import PointerNet
 from or_tools_comparisons.CVRP.cvrp_main import train_cvrp_model_pntr
 from or_tools_comparisons.CVRP.cvrp_model import CVRPSolver_PointerNetwork
 
-from datasets.CVRP_dataset import   update_mask_cvrp, update_dynamic
+from datasets.DEPRECATED_CVRP_dataset import   update_mask_cvrp, update_dynamic
 
 # auth h classh dinei ena montelo pou lynei to CVRP. auth th
 # stigmh exoume dyo montela: ena pou xrhsimopoiei multihead attention

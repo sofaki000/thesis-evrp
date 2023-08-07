@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from datasets.CVRP_dataset import update_dynamic, should_terminate_cvrp
+from datasets.DEPRECATED_CVRP_dataset import update_dynamic, should_terminate_cvrp
 from models.Attention import Attention
 from models.Embeddings.ConvolutionalEmbedding import ConvolutionalEncoder
 from models.Embeddings.GraphEmbeddings.GraphAttentionEncoderCVRP import GraphAttentionEncoderForCVRP

@@ -5,17 +5,18 @@ import torch
 from torch import nn
 from tqdm import tqdm
 import torch.optim as optim
-from matplotlib import pyplot as plt
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-
 from or_tools_comparisons.common_utilities import get_tour_length_from_distance_matrix
-from ploting.metrics.metrics import plot_average_tour_length
+from ploting.metrics.plot_average_tour_length import plot_average_tour_length
 from ploting.metrics.plot_tour import format_tours, print_tensor
 from ploting.plot_utilities import plot_train_and_validation_loss
 
 static_features = 2
 hidden_size = 128
+
+
+## TODO: bug that model returns the same routes for every problem!!
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -49,7 +50,7 @@ class Decoder(nn.Module):
         clone_mask = mask.clone()
 
         if indexes is not None:
-            clone_mask[[i for i in range(batch_size)], indexes.data.long()] = 1
+            clone_mask[[i for i in range(batch_size)], indexes.data.squeeze(1).long()] = 1
 
             logits[clone_mask.unsqueeze(1)] = -np.inf
         else:
@@ -74,12 +75,13 @@ class Decoder(nn.Module):
         chosen_indexes  = None
         mask = torch.zeros(batch_size, time_steps).byte()
 
+        context = encoder_context
         for time_step in range(time_steps):
             assert decoder_input.size(0) == batch_size
             assert decoder_input.size(1) == 1 # sequence size is 1, takes 1 by 1 the input seq
             assert decoder_input.size(2) == hidden_size
 
-            decoder_output,  context = self.decoder(decoder_input, encoder_context)
+            decoder_output,  context = self.decoder(decoder_input, context)
 
 
             # TODO: figure out pws pairnoume to actual result apo to decoder output?
@@ -102,8 +104,7 @@ class Decoder(nn.Module):
             tours.append(chosen_indexes.unsqueeze(1))
 
             # decoder input is next item in targets
-            decoder_input = self.targetToDecoderInput(targets[:, time_step].unsqueeze(1).float()).unsqueeze(1)
-
+            decoder_input = self.targetToDecoderInput(targets[:, time_step].unsqueeze(1).unsqueeze(1).float())
         loss /= batch_size
         tours = torch.cat(tours, 2)
 
@@ -120,7 +121,7 @@ class ClassicSeq2SeqTSPModel(nn.Module):
         loss, tours = self.decoder(encoderContext,  targets)
         return loss, tours
 
-def trainClassicSeq2SeqTSP(train_dataset, test_dataset,epochs,batch_size = 10, num_nodes=13):
+def trainClassicSeq2SeqTSP(train_dataset, test_dataset,epochs,experiment_details, batch_size = 10, num_nodes=13,lr=1e-4):
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     validation_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
 
@@ -136,9 +137,14 @@ def trainClassicSeq2SeqTSP(train_dataset, test_dataset,epochs,batch_size = 10, n
     tour_lengths_per_epoch = []
 
     for epoch in range(epochs):
+
+        model.train()
+
         loss_at_epoch = 0.0
         val_loss_at_epoch = 0.0
         iterator = tqdm(train_loader, unit='Batch')
+        # gia 1 item tou kathe batch
+        average_tour_length = 0
 
         for batch_id, sample_batch in enumerate(iterator):
             train_batch = Variable(sample_batch['Points'])
@@ -155,28 +161,27 @@ def trainClassicSeq2SeqTSP(train_dataset, test_dataset,epochs,batch_size = 10, n
 
             train_loss.append(loss.data.item())
 
-            model.eval()
-            for val_batch in validation_loader:
-                train_batch = Variable(val_batch['Points'])
-                target_batch = Variable(val_batch['Solution'])
-                loss, outputs = model(train_batch, target_batch)
-                val_loss.append(loss.data.item())
-                val_loss_at_epoch += loss.detach().item()
 
-
-            # gia 1 item tou kathe batch
-            average_tour_length = 0
             for tour in range(batch_size):
                 points = sample_batch['Points'][tour]
                 distance_matrix_array = distance_matrix(points,points)
                 content_from_my_model, tour_length = get_tour_length_from_distance_matrix(chosen_routes[tour].squeeze(0).long(), distance_matrix_array)
                 average_tour_length += tour_length.item()
 
+
+
+        # epoch finished
+        model.eval()
+        for val_batch in validation_loader:
+            train_batch = Variable(val_batch['Points'])
+            target_batch = Variable(val_batch['Solution'])
+            loss, outputs = model(train_batch, target_batch)
+            val_loss.append(loss.data.item())
+            val_loss_at_epoch += loss.detach().item()
             # for this tour, what did the model find and what did the target was?
             format_tours(target_batch, outputs.squeeze(1).int())
 
 
-        # epoch finished
         tour_lengths_per_epoch.append(average_tour_length/batch_size)
 
         print(f'Loss at epoch {epoch}: {loss_at_epoch}')
@@ -184,9 +189,10 @@ def trainClassicSeq2SeqTSP(train_dataset, test_dataset,epochs,batch_size = 10, n
         val_loss_per_epoch.append(val_loss_at_epoch)
 
     # Training finished
-    experiment_details = f'epochs{epochs}_seqLen{num_nodes}'
+    #experiment_details = f'epochs{epochs}_seqLen{num_nodes}_batch{batch_size}_lr{lr}'
     plot_train_and_validation_loss(epoch, losses_per_epoch, val_loss_per_epoch, experiment_details, "classicSeqToSeq")
 
 
     plot_average_tour_length(tour_lengths_per_epoch, experiment_details)
+
     return model,outputs

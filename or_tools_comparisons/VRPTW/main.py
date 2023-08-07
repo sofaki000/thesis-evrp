@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from datasets.CVRP_dataset import reward_fn
+from datasets.DEPRECATED_CVRP_dataset import reward_fn
 from datasets.VRPTW_dataset import VRPTW_data, reward_fn_vrptw
 from models.VRTW_SOLVER import VRPTW_SOLVER_MODEL
 

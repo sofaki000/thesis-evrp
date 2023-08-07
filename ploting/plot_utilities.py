@@ -115,6 +115,41 @@ def show_tour_for_one_solution(nodes, distance_matrix,   or_tour, filename ,titl
 
     plt.savefig(f"{filename}.png")
 
+def plot_train_loss_and_train_reward(epoch, train_loss, train_reward,experiment_details="", folder_name=None):
+    title1 = f"Train loss epoch {epoch}, {train_loss[-1]:.2f}"
+    title2 = f"Train reward epoch {epoch},{train_reward[-1]:.2f}"
+    filename = f"train_metrics_{experiment_details}_date{get_filename_time()}.png"
+
+    os.makedirs(folder_name, exist_ok=True)
+    #plot_train_and_validation_metrics("Loss", train_loss, train_reward, title1,title2, filename,folder_name)
+    clear_output(True)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 6))
+
+    # # Add x and y labels to all subplots
+    # for ax in axes.flat:
+    #     ax.set(xlabel='Epochs', ylabel=f'{metric_name}')
+
+    axes[0].plot(train_loss)
+    axes[0].set_title(title1)
+    axes[0].set(xlabel='Epochs', ylabel="Loss")
+    axes[0].grid()
+    axes[1].grid()
+    axes[1].plot(train_reward)
+    axes[1].set(xlabel='Epochs', ylabel="Reward")
+    axes[1].set_title(title2)
+
+    # directory =f'metrics\\{epoch}'
+    now = datetime.datetime.now()
+    directory = f'metrics\\day_{now.day}\\hour_{now.hour}'
+
+    if folder_name is not None:
+        directory = f'metrics\\day_{now.day}\\hour_{now.hour}\\{folder_name}'
+
+    os.makedirs(directory, exist_ok=True)
+    plt.savefig(f'{directory}\\{filename}')
+
+    plt.clf()
+
 def plot_train_and_validation_loss(epoch, train_loss, val_loss,experiment_details="", folder_name=None):
     title1 = f"Train loss epoch {epoch}, {train_loss[-1]:.2f}"
     title2 = f"Val loss epoch {epoch},{val_loss[-1]:.2f}"
@@ -186,6 +221,29 @@ def plot_train_and_validation_metrics(metric_name,train_metric, val_metric,
     plt.savefig(f'{directory}\\{filename}')
 
     plt.clf()
+
+def plot_train_tour_length(seq_len, epoch,train_tour,val_tour,train_size,batch_size, epochs ):
+    clear_output(True)
+    plt.figure(figsize=(20, 5))
+    plt.subplot(131)
+    plt.title('train tour length: epoch %s reward %s' % (
+        epoch, train_tour[-1] if len(train_tour) else 'collecting'))
+    plt.plot(train_tour)
+    plt.grid()
+    plt.ylabel("Tour length")
+    plt.subplot(132)
+    plt.title(
+        'val tour length: epoch %s reward %s' % (epoch, val_tour[-1] if len(val_tour) else 'collecting'))
+    plt.plot(val_tour)
+    plt.grid()
+
+    experiment_details = f'epochs{epochs}_seqLen{seq_len}_train{train_size}_batch{batch_size}'
+    now = datetime.datetime.now()
+    directory = f'metrics\\day_{now.day}\\hour_{now.hour}'
+
+    os.makedirs(directory, exist_ok=True)
+    plt.savefig(f'{directory}\\results{experiment_details}_{get_filename_time()}.png')
+
 
 # # for testing
 # plot_train_and_validation_metrics("Test",[1,2,3,4], [1,2,3,4], "title 1", "title 2", "test.png")

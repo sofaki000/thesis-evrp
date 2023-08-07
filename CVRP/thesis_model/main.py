@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from CVRP.thesis_model.model import PointerNet
-from datasets.CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
+from datasets.DEPRECATED_CVRP_dataset import CapacitatedVehicleRoutingDataset, reward_fn
 from models.CVRP_Critic import StateCritic
 
 from ploting.plot_utilities import plot_train_and_validation_loss, plot_train_and_validation_reward, plot_reward, \

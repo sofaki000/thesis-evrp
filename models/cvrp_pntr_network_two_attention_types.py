@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # source: https://github.com/higgsfield/np-hard-deep-reinforcement-learning/blob/master/Neural%20Combinatorial%20Optimization.ipynb
-from datasets.CVRP_dataset import update_mask_cvrp_v2, update_dynamic
+from datasets.DEPRECATED_CVRP_dataset import update_mask_cvrp_v2, update_dynamic
 from or_tools_comparisons.CVRP.cvrp_model import Embedding
 from ploting.plot_utilities import get_filename_time
 from ploting.plot_utilities_attention import plot_attention_weights_heatmap_for_each_timestep, \
